@@ -1,0 +1,67 @@
+#################
+## Modelsim
+#################
+
+# ignore ModelSim generated files and directories (temp files and so on)
+[_@]*
+# ignore compilation output of ModelSim
+*.mti
+*.dat
+*.dbs
+*.psm
+*.prw
+*.bak
+*.cmp
+*.jpg
+*.html
+*.bsf
+# ignore simulation output of ModelSim
+wlf*
+*.wlf
+*.vstf
+*.ucdb
+cov*/
+transcript*
+sc_dpiheader.h
+vsim.dbg
+
+#################
+# Quartus II
+#################
+
+# ignore Quartus II generated files
+*sopc_*
+*.jdi
+*.ptf.*
+*.sof
+*.pof
+*.qws
+*.smsg
+*_inst.vhd
+*_generation_script*
+*.done
+*.txt
+*.qarlog
+*.rpt
+*.summary
+*.qws
+*.cmp
+*.eqn
+*.html
+*.jpg
+*.bak
+*.qar
+*.sopc_builder
+*example*
+*~
+*.sdc
+*.tcl
+*.pin
+
+# ignore Quartus II generated folders
+db/
+incremental_db/
+simulation/
+timing/
+testbench/
+*_sim/
