@@ -3,7 +3,6 @@
 library ieee;
   use ieee.std_logic_1164.all;
   use ieee.numeric_std.all;
-  use work.MemoryInit.all;
   
 entity memory is 
   port(
@@ -16,9 +15,13 @@ end memory;
 
 architecture memory of memory is 
   -- Actual Memory
-	signal RamUse:mem := InitializeMemory; /* synthesis ramstyle = "M4K" */
-	attribute romstyle : string;
-  attribute romstyle of RamUse : signal is "M4K";
+  type mem is array(0 to 1023) of std_logic_vector(15 downto 0);
+	signal RamUse:mem; /* synthesis ramstyle = "M4K" */
+	attribute ramstyle : string;
+	attribute ram_init_file  : string;
+  attribute ramstyle of RamUse : signal is "M4K";
+  attribute ram_init_file of RamUse : signal is "init.mif"; /* Synthesizable, not simulated*/
+
 begin
   process(clock) 
   begin
@@ -27,7 +30,7 @@ begin
       if(reset = '1') then 
         instructions <= "UUUUUUUUUUUUUUUU"; -- Send garbage
       elsif unsigned(address) < 150 then
-        instructions <= RamUse(to_integer(unsigned(address))) & RamUse(to_integer(unsigned(address)+1));
+        instructions <= RamUse(to_integer(unsigned(address(30 downto 1))));
       else 
         null;
       end if;

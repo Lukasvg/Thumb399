@@ -11,7 +11,6 @@
 library ieee;
 	use ieee.std_logic_1164.all;
 	use ieee.numeric_std.all;
-	use work.MemoryInit.all;
 	
 entity integer_unit is
 	port (clock : in std_logic;
@@ -22,13 +21,14 @@ entity integer_unit is
 end integer_unit;
 
 architecture integer_unit of integer_unit is
-	signal reg : register_file_t := RamSetup;
+  type register_file_t is array(0 to 15) of unsigned(31 downto 0);
+	signal reg : register_file_t := (others => (others => '0'));
 	signal statusRegisters : unsigned(3 downto 0) := to_unsigned(0, 4);
   signal instruction: unsigned(15 downto 0);
 begin
 	process(instruction, clock)
 		-- variables
-		variable regField : register_file_t := RamSetup;
+		variable regField : register_file_t := (others => (others => '0'));
 		variable bl_var: unsigned ( 11 downto 0 );
 	
 		-- PROCEDURES HERE
