@@ -14,12 +14,6 @@
 
 -- Quartus II generated Memory Initialization File (.mif)
 
--- Louis: 100-199
--- Cody: 200-299
--- Cassandra: 300-399
--- Lee : 400-499
--- Johnny: 500-599
-
 WIDTH=16;
 DEPTH=1024;
 
