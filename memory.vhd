@@ -15,14 +15,28 @@ end memory;
 
 architecture memory of memory is 
   -- Actual Memory
+  /*
   type mem is array(0 to 1023) of std_logic_vector(15 downto 0);
-	signal RamUse:mem; /* synthesis ramstyle = "M4K" */
+	signal RamUse:mem; 
 	attribute ramstyle : string;
 	attribute ram_init_file  : string;
   attribute ramstyle of RamUse : signal is "M4K";
-  attribute ram_init_file of RamUse : signal is "init.mif"; /* Synthesizable, not simulated*/
-
+  attribute ram_init_file of RamUse : signal is "init.mif"; -- Synthesizable, not simulated
+  */
+  component romlpm is 
+    port(		
+      address		: IN STD_LOGIC_VECTOR (9 DOWNTO 0);
+		  clock		: IN STD_LOGIC  := '1';
+		  q		: OUT STD_LOGIC_VECTOR (15 DOWNTO 0)
+		); 
+  end component;
 begin
+  uut: romlpm port map (
+    address => address(10 downto 1),
+    clock => clock,
+    q => instructions
+  );
+  /*
   process(clock) 
   begin
     -- On the positive edge of the clock output
@@ -36,5 +50,5 @@ begin
       end if;
     end if;
   end process; 
-  
+  */
 end memory;

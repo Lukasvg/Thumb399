@@ -180,10 +180,11 @@ begin
 		if(STALL = '1') THEN
 		  stall <= '0';
 		  instruction <= "UUUUUUUUUUUUUUUU";
+		  address <= "UUUUUUUUUUUUUUUUUUUUUUUUUUUUUU"; -- Send Garbage Address when stalls
 		else 
 		  instruction <= instructions;
+		   address <= std_logic_vector(regField(15));
 		end if;
-    address <= std_logic_vector(regField(15));
     if(reset = '0') then
       regField(15) := regField(15) + 2; 
     end if;
