@@ -24,6 +24,10 @@ architecture integer_unit of integer_unit is
   type register_file_t is array(0 to 15) of unsigned(31 downto 0);
 	signal reg : register_file_t := (others => (others => '0'));
 	signal statusRegisters : unsigned(3 downto 0) := to_unsigned(0, 4);
+	 -- 3 => Carry
+	 -- 2 => Zero
+	 -- 1 => Negative
+	 -- 0 => Overflow
 	signal instruction : unsigned(15 downto 0); 
 begin
   instruction <= (instructionTemp and not (stall or reset));
@@ -33,7 +37,44 @@ begin
 		variable bl_var: unsigned ( 11 downto 0 );
 	 
 		-- PROCEDURES HERE
+		procedure AllStatusRegisterUpdate( src1: unsigned; 
+		                                   src2: unsigned; 
+		                                   result: unsigned) is
+		begin
+		  statusRegisters(1) <= result(31); -- Negative
+		  statusRegisters(2) <= '1' when (result = 0) else '0';
+		  statusRegisters(3) <= result(32); -- Carry
+		end AllStatusRegisterUpdate;
 		
+		----[ CMN ]
+		procedure CMN16(src1: unsigned;
+		                src2: unsigned) is 
+		variable temp : unsigned(32 downto 0) := to_unsigned(0, 33);
+		begin
+		  temp := resize(src1,33) + resize(src2,33);
+      AllStatusRegisterUpdate(src1, src2, temp);
+   	  statusRegisters(0) <= '1' when (src1(31) = src2(31)) and (src1(31) /= temp(31)) else '0'; 
+		end CMN16;               
+		
+		----[ CMP ]
+		procedure CMP16(src1 : unsigned;
+		                src2 : unsigned) is
+		variable temp : unsigned(32 downto 0) := to_unsigned(0,33);
+		begin
+		  temp := resize(src1,33) - resize(src2, 33);
+		  AllStatusRegisterUpdate(src1, src2, temp); 
+		  statusRegisters(0) <= '1' when (src1(31) = src2(31)) and (src1(31) /= temp(31)) else '0';  
+		end CMP16;
+
+    ----[ TST ]
+    procedure TST16(src1 : unsigned;
+                    src2 : unsigned) is
+ 	  variable temp : unsigned(32 downto 0) := to_unsigned(0,33);                   
+    begin
+      temp := resize(src1,33) and resize(src2, 33);
+		  AllStatusRegisterUpdate(src1, src2, temp);  
+    end TST16;           
+
 		----[ LSL ]
 		procedure LSL16(dest, src : integer range 0 to 15;
 							 n : integer range 0 to 31) is
@@ -227,6 +268,13 @@ begin
 						ADD16(to_integer(instruction(10 downto 8)),		-- Rdn
 								to_integer(instruction(10 downto 8)),		-- Rdn
 								(instruction(7 downto 0)));		-- imm8
+					when "101--" =>
+					  -- CMP (imm8)
+					  CMP16(reg(to_integer(instruction(10 downto 8))),
+					        resize(instruction(7 downto 0),32));
+					when "01111" =>
+					  -- Temp Subtract
+					  reg(to_integer(instruction(2 downto 0))) <= reg((to_integer(instruction(5 downto 3)))) - instruction(8 downto 6);
 					when others =>
 						null;
 				end case?;
@@ -277,6 +325,17 @@ begin
 						-- MVN
 						MVN16(to_integer(instruction(2 downto 0)),		-- Rd
 								to_integer(instruction(5 downto 3)));		-- Rm
+					when "1011" =>
+					  CMN16(reg(to_integer(instruction(5 downto 3))), 
+					     	reg(to_integer(instruction(2 downto 0))));
+					when "1010" =>
+					  -- CMP (REG)
+					  CMP16(reg(to_integer(instruction(5 downto 3))),
+					       reg(to_integer(instruction(2 downto 0))));
+					when "1000" =>
+					  -- TST
+					  TST16(reg(to_integer(instruction(5 downto 3))),
+					       reg(to_integer(instruction(2 downto 0))));
 					when others =>
 						null;
 				end case?;
@@ -298,6 +357,14 @@ begin
 					when "1110" =>
 						-- BLX
 						BLX16(to_integer(instruction(6 downto 3)));
+					when "0101" =>
+					  -- CMP (Extend)
+					  CMP16(reg(to_integer(instruction(6 downto 3))),
+					        reg(to_integer(instruction(7) & instruction(2 downto 0))));
+					when "011-" =>
+					  -- CMP (Extend)
+					  CMP16(reg(to_integer(instruction(6 downto 3))),
+					        reg(to_integer(instruction(7) & instruction(2 downto 0))));
 					when others =>
 						null;
 				end case?;

@@ -62,6 +62,7 @@ begin
  process
     -- access the register file within the uut (VDHL 2008 only)
     alias reg is << signal .testbench.uut.reg: register_file_t>>;
+    alias statusRegisters is << signal .testbench.uut.statusRegisters: unsigned >>;
   begin
     -- Move Registers 
     -- 1 -- MOV R0, #2
@@ -249,9 +250,55 @@ begin
     wait for 20 ns;
     wait for 20 ns; -- it's a two step operation
     -- Add R1, #2
-    wait for 100 ns;
+    wait for 40 ns;
     assert reg(1) = 12 report "BL operation failed";
 
+    
+    -- CMP Instructions Tests
+    -- CMN
+    wait for 20 ns; -- MOV R0, 0
+    wait for 20 ns; -- MOV R1, 0
+    wait for 20 ns; -- CMN R0, R1
+    assert statusRegisters(2) = '1' report "CMN Zero Register Updated";
+    wait for 20 ns; -- CMP Constant
+    assert statusRegisters(2) = '1' report "CMP Constant Zero Register Updated";
+    wait for 20 ns; -- CMP Register
+    assert statusRegisters(2) = '1' report "CMP Registers Zero Register Updated";
+    wait for 20 ns; -- CMP Extend Register
+    assert statusRegisters(2) = '1' report "CMP Extend Reg Zero Register Updated";
+    wait for 20 ns; -- TST Registers
+    assert statusRegisters(2) = '1' report "TST Register Zero Updated";
+    
+    wait for 20 ns; -- SUB R0, 1
+    wait for 20 ns; -- CMN R0, R1;
+    assert statusRegisters(1) = '1' report "CMN Negative Register Updated";
+    wait for 20 ns; -- CMP Constant
+    assert statusRegisters(1) = '1' report "CMP Constant Negative Register Updated";
+    wait for 20 ns; -- CMP Register
+    assert statusRegisters(1) = '1' report "CMP Registers Negative Register Updated";
+    wait for 20 ns; -- CMP Extend Register
+    assert statusRegisters(1) = '1' report "CMP Extend Reg Negative Register Updated";
+    
+    
+    wait for 20 ns; -- SUB r1, 1
+    wait for 20 ns; -- TST Registers
+    assert statusRegisters(1) = '1' report "TST Register Negative Updated";
+    
+    wait for 20 ns; -- CMN R0, R1;
+    assert statusRegisters(3) = '1' report "CMN Carry Register Updated";
+    
+    wait for 20 ns; -- MOV R0, 0
+    wait for 20 ns; -- MOV R1, 1
+    wait for 20 ns; -- CMP Constant
+    assert statusRegisters(3) = '1' report "CMP Constant Carry Register Updated";
+    assert statusRegisters(0) = '1' report "CMP Overflow Register Updated";
+    wait for 20 ns; -- CMP Register
+    assert statusRegisters(3) = '1' report "CMP Registers Carry Register Updated";
+    assert statusRegisters(0) = '1' report "CMP Overflow Register Updated";
+    wait for 20 ns; -- CMP Extend Register
+    assert statusRegisters(3) = '1' report "CMP Extend Reg Carry Register Updated";
+    assert statusRegisters(0) = '1' report "CMP Overflow Register Updated";
+    
     wait for 40 ns;
     reset <= '1';
     wait for 20 ns;
