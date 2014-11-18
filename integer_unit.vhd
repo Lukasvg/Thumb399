@@ -206,6 +206,38 @@ begin
 			stall <= '1';
 		end BL16;
 		
+		----[ UXTB ]
+		procedure UXTB16( dest, src : integer range 0 to 7 ) is 
+		begin
+		  reg(dest) <= "000000000000000000000000" & reg(src)(7 downto 0);
+		end UXTB16;
+		  
+	  ----[ UXTH ]
+		procedure UXTH16( dest, src : integer range 0 to 7 ) is 
+		begin
+		  reg(dest) <= "0000000000000000" & reg(src)(15 downto 0);
+		end UXTH16;
+		
+		----[ SXTB ]
+		procedure SXTB16( dest, src : integer range 0 to 7 ) is 
+		begin
+		  if reg(src)(7) = '1' then
+		    reg(dest) <= "111111111111111111111111" & reg(src)(7 downto 0);
+		  else
+		    reg(dest) <= "000000000000000000000000" & reg(src)(7 downto 0);
+		  end if;
+		end SXTB16;
+		
+		----[ SXTH ]
+		procedure SXTH16( dest, src : integer range 0 to 7 ) is 
+		begin
+		  if reg(src)(15) = '1' then
+		    reg(dest) <= "1111111111111111" & reg(src)(15 downto 0);
+		  else
+		    reg(dest) <= "0000000000000000" & reg(src)(15 downto 0);
+		  end if;
+		end SXTH16;
+		
 	-- Bug note
 	-- If the clock changes for any reason it will repeat the instruction so we have to check both edges of the clock
 	-- in order to make sure it saves and doesn't repeat the instruction twice.
@@ -379,6 +411,22 @@ begin
 						ADD16S(13,												-- SP
 								13,												--	SP
 								to_integer(instruction(6 downto 0)));  -- imm7
+					when "001011-" =>
+					  -- UXTB
+					  UXTB16( to_integer(instruction(5 downto 3)),
+					          to_integer(instruction(2 downto 0)));
+					when "001010-" =>
+					  -- UXTH
+					  UXTH16( to_integer(instruction(5 downto 3)),
+					          to_integer(instruction(2 downto 0)));
+					when "001001-" =>
+					  -- SXTB
+					  SXTB16( to_integer(instruction(5 downto 3)),
+					          to_integer(instruction(2 downto 0)));					
+					when "001000-" =>
+					  -- SXTH
+					  SXTH16( to_integer(instruction(5 downto 3)),
+					          to_integer(instruction(2 downto 0)));
 					when others =>
 						null;
 				end case?;
