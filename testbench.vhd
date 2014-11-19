@@ -253,9 +253,9 @@ begin
     wait for 40 ns;
     assert reg(1) = 12 report "BL operation failed";
 
-    
+    -- Johnny's Test Code. Instruction Memory 500-599
     -- CMP Instructions Tests
-    -- CMN
+    -------------------------------------------------------------------------------
     wait for 20 ns; -- MOV R0, 0
     wait for 20 ns; -- MOV R1, 0
     wait for 20 ns; -- CMN R0, R1
@@ -278,8 +278,7 @@ begin
     assert statusRegisters(1) = '1' report "CMP Registers Negative Register Updated";
     wait for 20 ns; -- CMP Extend Register
     assert statusRegisters(1) = '1' report "CMP Extend Reg Negative Register Updated";
-    
-    
+  
     wait for 20 ns; -- SUB r1, 1
     wait for 20 ns; -- TST Registers
     assert statusRegisters(1) = '1' report "TST Register Negative Updated";
@@ -298,7 +297,7 @@ begin
     wait for 20 ns; -- CMP Extend Register
     assert statusRegisters(3) = '1' report "CMP Extend Reg Carry Register Updated";
     assert statusRegisters(0) = '1' report "CMP Overflow Register Updated";
-    
+    -----------------------------------------------------------------------------------
     wait for 40 ns;
     reset <= '1';
     wait for 20 ns;
