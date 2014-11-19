@@ -36,15 +36,29 @@ begin
 		-- variables
 		variable bl_var: unsigned ( 11 downto 0 );
 	 
-		-- PROCEDURES HERE
-		procedure AllStatusRegisterUpdate( src1: unsigned; 
-		                                   src2: unsigned; 
-		                                   result: unsigned) is
+	  -- General Purpose Status Register Update Procedures
+	  -- For Negative - pass in 32 bits
+	  procedure NegativeRegisterUpdate( result : unsigned ) is
+	  begin
+	    statusRegisters(1) <= result(31); -- Negative
+	  end NegativeRegisterUpdate;
+	  -- For Carry - pass in 33 bits
+	  procedure CarryRegisterUpdate( result : unsigned ) is
+	  begin
+	    statusRegisters(3) <= result(32); -- Carry
+	  end CarryRegisterUpdate;
+		-- For Zero - No designated size
+		procedure ZeroRegisterUpdate( result : unsigned ) is
 		begin
-		  statusRegisters(1) <= result(31); -- Negative
 		  statusRegisters(2) <= '1' when (result = 0) else '0';
-		  statusRegisters(3) <= result(32); -- Carry
-		end AllStatusRegisterUpdate;
+		end ZeroRegisterUpdate;
+		-- For Overflow - Pass in the two src's and result. Make sure all are 32 bits in size
+		procedure OverflowRegisterUpdate( src1: unsigned; src2: unsigned; result: unsigned) is
+		begin
+		  statusRegisters(0) <= '1' when (src1(31) = src2(31)) and (src1(31) /= result(31)) else '0'; 
+		end OverflowRegisterUpdate;
+		
+		-- PROCEDURES HERE
 		
 		----[ CMN ]
 		procedure CMN16(src1: unsigned;
@@ -52,8 +66,10 @@ begin
 		variable temp : unsigned(32 downto 0) := to_unsigned(0, 33);
 		begin
 		  temp := resize(src1,33) + resize(src2,33);
-      AllStatusRegisterUpdate(src1, src2, temp);
-   	  statusRegisters(0) <= '1' when (src1(31) = src2(31)) and (src1(31) /= temp(31)) else '0'; 
+      NegativeRegisterUpdate(temp);
+   	  CarryRegisterUpdate(temp);
+   	  ZeroRegisterUpdate(temp);
+   	  OverflowRegisterUpdate(src1, src2, temp);
 		end CMN16;               
 		
 		----[ CMP ]
@@ -62,8 +78,10 @@ begin
 		variable temp : unsigned(32 downto 0) := to_unsigned(0,33);
 		begin
 		  temp := resize(src1,33) - resize(src2, 33);
-		  AllStatusRegisterUpdate(src1, src2, temp); 
-		  statusRegisters(0) <= '1' when (src1(31) = src2(31)) and (src1(31) /= temp(31)) else '0';  
+      NegativeRegisterUpdate(temp);
+   	  CarryRegisterUpdate(temp);
+   	  ZeroRegisterUpdate(temp);
+   	  OverflowRegisterUpdate(src1, src2, temp);
 		end CMP16;
 
     ----[ TST ]
@@ -72,7 +90,9 @@ begin
  	  variable temp : unsigned(32 downto 0) := to_unsigned(0,33);                   
     begin
       temp := resize(src1,33) and resize(src2, 33);
-		  AllStatusRegisterUpdate(src1, src2, temp);  
+		  NegativeRegisterUpdate(temp);
+   	  CarryRegisterUpdate(temp);
+   	  ZeroRegisterUpdate(temp);
     end TST16;           
 
 		----[ LSL ]
