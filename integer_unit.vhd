@@ -28,7 +28,11 @@ architecture integer_unit of integer_unit is
 	 -- 2 => Zero
 	 -- 1 => Negative
 	 -- 0 => Overflow
-	signal instruction : unsigned(15 downto 0); 
+	signal instruction : unsigned(15 downto 0);
+	signal ram_addr : std_logic_vector (11 downto 0);
+	signal ram_data : std_logic_vector (31 downto 0);
+	signal ram_wren : std_logic;
+	signal ram_out : std_logic_vector (31 downto 0);
 begin
   instruction <= (instructionTemp and not (stall or reset));
   
