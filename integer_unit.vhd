@@ -227,19 +227,19 @@ begin
 		end BL16;
 		
 		----[ UXTB ]
-		procedure UXTB16( dest, src : integer range 0 to 7 ) is 
+		procedure UXTB16( src, dest : integer range 0 to 7 ) is 
 		begin
 		  reg(dest) <= "000000000000000000000000" & reg(src)(7 downto 0);
 		end UXTB16;
 		  
 	  ----[ UXTH ]
-		procedure UXTH16( dest, src : integer range 0 to 7 ) is 
+		procedure UXTH16( src, dest : integer range 0 to 7 ) is 
 		begin
 		  reg(dest) <= "0000000000000000" & reg(src)(15 downto 0);
 		end UXTH16;
 		
 		----[ SXTB ]
-		procedure SXTB16( dest, src : integer range 0 to 7 ) is 
+		procedure SXTB16( src, dest : integer range 0 to 7 ) is 
 		begin
 		  if reg(src)(7) = '1' then
 		    reg(dest) <= "111111111111111111111111" & reg(src)(7 downto 0);
@@ -249,7 +249,7 @@ begin
 		end SXTB16;
 		
 		----[ SXTH ]
-		procedure SXTH16( dest, src : integer range 0 to 7 ) is 
+		procedure SXTH16( src, dest : integer range 0 to 7 ) is 
 		begin
 		  if reg(src)(15) = '1' then
 		    reg(dest) <= "1111111111111111" & reg(src)(15 downto 0);
