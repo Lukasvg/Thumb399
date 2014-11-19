@@ -438,6 +438,10 @@ begin
 						-- ADC
 						ADC16(to_integer(instruction(2 downto 0)),								-- Rd
 								to_integer(instruction(5 downto 3)));								-- Rm
+					when "0110" =>
+						-- SBC
+						ADC16(to_integer(instruction(2 downto 0)),								-- Rd
+								to_integer(instruction(5 downto 3)));								-- Rm
 					when "0111" =>
 						-- ROR
 						ROR16(to_integer(instruction(2 downto 0)),								-- Rdn
@@ -468,12 +472,12 @@ begin
 					       reg(to_integer(instruction(2 downto 0))));
 					when "1001" =>
 						-- NEG || RSB
-						NEG16(reg(to_integer(instruction(5 downto 3))),
-					       reg(to_integer(instruction(2 downto 0))));
+						NEG16(reg(to_integer(instruction(2 downto 0))),
+					       reg(to_integer(instruction(5 downto 3))));
 					when "1101" =>
 						-- MUL
-						MUL16(reg(to_integer(instruction(5 downto 3))),
-					       reg(to_integer(instruction(2 downto 0))));
+						MUL16(reg(to_integer(instruction(2 downto 0))),
+					       reg(to_integer(instruction(5 downto 3))));
 					when others =>
 						null;
 				end case?;
