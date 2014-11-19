@@ -171,9 +171,9 @@ begin
 		begin
 		  
 			if(inst(10) = '1') then
-				reg(15) <= reg(15) - inst( 9 downto 0 ) - "00000000000000000000000000000110";
+				reg(15) <= reg(15) + ( "1111111111111111111111" & inst( 9 downto 0 ) ) + "00000000000000000000000000000100";
 			else
-				reg(15) <= reg(15) + inst( 9 downto 0 ) - "00000000000000000000000000000110";
+				reg(15) <= reg(15) + inst( 9 downto 0 ) - "00000000000000000000000000000100";
 			end if;
 			stall <= '1';
 		end B16;
@@ -188,7 +188,7 @@ begin
 		----[ BLX ]
 		procedure BLX16( src : integer range 0 to 15 ) is
 		begin
-			reg(14) <= reg(15) - "00000000000000000000000000000100";
+			reg(14) <= reg(15) - "00000000000000000000000000000010";
 			reg(15) <= reg(src);
 			stall <= '1';
 		end BLX16;
