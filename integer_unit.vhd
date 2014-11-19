@@ -31,6 +31,8 @@ architecture integer_unit of integer_unit is
 	signal instruction : unsigned(15 downto 0); 
 begin
   instruction <= (instructionTemp and not (stall or reset));
+  
+  RAM : entity work.ramlpm port map(ram_addr, clock, data, wren, q);
     
 	process(instruction, clock)
 		-- variables
