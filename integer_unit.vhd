@@ -42,7 +42,7 @@ begin
 		-- variables
 		variable bl_var: unsigned ( 11 downto 0 );
 		variable ram_offset : unsigned (31 downto 0);
-	 
+	  --variable ram_wait : std_logic := '0';
 	  -- General Purpose Status Register Update Procedures
 	  -- For Negative - pass in 32 bits
 	  procedure NegativeRegisterUpdate( result : unsigned ) is
@@ -336,6 +336,7 @@ begin
 		  -- dest = [src + offset]
 		  temp_addr := src + offset;
 		  ram_addr <= std_logic_vector(temp_addr(11 downto 0));
+		  ram_wren <= '0';
 		  reg(dest) <= unsigned(ram_out);
 		end LDR16;
 		
@@ -347,8 +348,8 @@ begin
 		  -- [src + offset] = value
 		  temp_addr := src + offset;
 		  ram_addr <= std_logic_vector(temp_addr(11 downto 0));
-		  ram_data <= std_logic_vector(value);
 		  ram_wren <= '1';
+		  ram_data <= std_logic_vector(value);
 		end STR16;
 		
 	-- Bug note
@@ -370,6 +371,9 @@ begin
 		end if;
     if(reset = '0' and stall = '0') then
       reg(15) <= reg(15) + 2; 
+    end if;
+    if(ram_wren = '1') then
+      ram_wren <= '0';
     end if;
 	end if;
 	
@@ -649,9 +653,9 @@ begin
 			        reg(to_integer(instruction(8 downto 6)))); -- Rm (offset)
 			when "010100" => 
 			-- STR [Rm+Rn] = Rt
-			  STR16(reg(to_integer(instruction(2 downto 0))),  -- Rm (src)
+			  STR16(reg(to_integer(instruction(8 downto 6))),  -- Rm (src)
 			        reg(to_integer(instruction(5 downto 3))),  -- Rn (offset)
-			        reg(to_integer(instruction(8 downto 6)))); -- Rt (value)
+			        reg(to_integer(instruction(2 downto 0)))); -- Rt (value)
 			when others => -- Start will be all uuuu's report "Bad Instruction" severity ERROR;
 		end case?;	
 	 end if;
