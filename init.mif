@@ -1,4 +1,4 @@
--- Copyright (C) 1991-2012 Altera Corporation
+-- Copyright (C) 2014 Digipen Institute of Technology
 -- Your use of Altera Corporation's design tools, logic functions 
 -- and other software and tools, and its AMPP partner logic 
 -- functions, and any output files from any of the foregoing 
@@ -19,6 +19,7 @@
 -- Cassandra: 300-399
 -- Lee : 400-499
 -- Johnny: 500-599
+-- Tyler: 600-799
 
 WIDTH=16;
 DEPTH=1024;
@@ -89,6 +90,27 @@ CONTENT BEGIN
 	055  :   0011000100000010; -- ADD
 	056  :   1111000000000000;
 	057  :   1111100001011001;
+	--058  :   1110000001110000;-- Branch to Cody's Memory
+	--0C8	 :	 0010000000000001; -- MOV R0, 1 Testing branch works
+	--059  :   0011000100000010; -- ADD	
+
+	-- Louis Start (064) ------------------------
+	064  :   0010000000101010; -- MOV 42 into R0
+	066  :   0010000100001010; -- MOV 10 into R1
+	067  :   0110101110001000; -- LDR address 66 [R1 + 56] into R0
+	068  :   0010000000101010; -- MOV 42 into R0
+	069  :   0110010000001000; -- STR R0 into address 74 [R1 + 64]
+	06A  :   0110101000000001; -- LDR address 74 into R1
+	06B  :   0010001000000001; -- MOV 1 into R2
+	06C  :   0010001101001000; -- MOV 72 into R3
+	06D  :   0010010000011100; -- MOV 28 into R4
+	06E  :   0101100011100010; -- LDR address 100 into R2 
+	06F  :   0010001011001001; -- MOV 201 into R2
+	070  :   0101000011100010; -- STR 201 into address 100
+	071  :   0101100011100101; -- LDR address 100 into R5
+	-- LDR/STR Test End -------------------
+	
+	---------------- Cassandra Begin --------------------
 	12C  :	 0010000010000000; -- MOV R0, #128
 	12D	 :	 0010000100010111; -- MOV R1, #23
 	12E  :	 0100000010001000; -- LSL R0, R1
@@ -170,6 +192,7 @@ CONTENT BEGIN
 	17A  :   0100000010001010; -- LSL R2, R1
 	17B  :   0100001100000000; -- ORR R0, R0
 	17C  :   0100001100001010; -- ORR R2, R1
+	----------- Cassandra End -------------------
 	1F4  :   0011000100000010; -- Add
 	1F5  :   0010000000000000; -- MOV R0, 0
 	1F6  :   0010000100000000; -- MOV R1, 0
@@ -191,5 +214,21 @@ CONTENT BEGIN
 	206  :   0010100000000001; -- CMP R0, 1
 	207  :   0100001010000001; -- CMP R0, R1
 	207  :   0100010100000000; -- CMP R0, R1
-	[208..3FF]  :   0000000000000000;
+	-- Tyler Start ------------------------
+	258	 :   1110000000100000; -- B 16
+	262  :	 0011000000000001; -- ADD R0 0x1
+	263	 :   1110000000100000; -- B 16
+	268	 :	 0010000000001111; -- MOV R0 0x010F
+	269	 :   1011001011000001; -- UXTB R0 R1  new value should be just 0x0F
+	26A	 :	 0010000010000101; -- MOV R0 0x85
+	26B  :   0001100000000000; -- ADD R0 R0 R0 value should be 0X010A
+	26C  :   1011001010000001; -- UXTH R0 R1  walue should stay the same
+	26D  :   0010000011110000; -- MOV R1 0xF0
+	26E	 :   1011001001000001; -- SXTB R0 R1  new value should be 0xFFFFFFF0
+	26F  :   0010000011110000; -- MOV R0 0XF0
+	270  :   0000001000000000; -- LSL R0 8  new value 0xF000
+	271  :   1011001000000001; -- SXTH R0 R1 new value should be 0xFFFFF000
+	272  :   1110010000100000; -- B -16
+	
+	[273..3FF]  :   0000000000000000;
 END;

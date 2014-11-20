@@ -24,6 +24,8 @@ cov*/
 transcript*
 sc_dpiheader.h
 vsim.dbg
+# ignore ModelSim project file
+*.mpf
 
 #################
 # Quartus II
