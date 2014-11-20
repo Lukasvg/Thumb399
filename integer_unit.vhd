@@ -36,11 +36,12 @@ architecture integer_unit of integer_unit is
 begin
   instruction <= (instructionTemp and not (stall or reset));
   
-  RAM : entity work.ramlpm port map(ram_addr, clock, data, wren, q);
+  RAM : entity work.ramlpm port map(ram_addr, clock, ram_data, ram_wren, ram_out);
     
 	process(instruction, clock)
 		-- variables
 		variable bl_var: unsigned ( 11 downto 0 );
+		variable ram_offset : unsigned (31 downto 0);
 	 
 	  -- General Purpose Status Register Update Procedures
 	  -- For Negative - pass in 32 bits
@@ -179,7 +180,7 @@ begin
 		end SUB16;
 		
 		procedure SUB16S( dest, src : integer range 0 to 15;
-							  n : unsigned) is
+							  n : integer range 0 to 128) is
 		begin
 			reg(dest) <= reg(src) + to_unsigned(n, 32);
 		end SUB16S;
@@ -207,9 +208,8 @@ begin
 		end NEG16;
 		
 		----[ MUL ]
-		procedure MUL16( dest, src : integer range 0 to 15;
-							  n : unsigned) is
-		variable temp : unsigned(32 downto 0) := to_unsigned(0, 33);
+		procedure MUL16( dest, src : integer range 0 to 15) is
+		variable temp : unsigned(65 downto 0) := to_unsigned(0, 66);
 		begin
 			temp := resize(reg(dest), 33) * resize(reg(src), 33);
 			reg(dest) <= temp(31 downto 0);
@@ -327,6 +327,30 @@ begin
 		  end if;
 		end SXTH16;
 		
+		----[ LDR16 ]
+		procedure LDR16( dest : integer range 0 to 7;
+		                 src, offset : unsigned (31 downto 0)) is
+		variable temp_addr : unsigned(31 downto 0); 
+		begin
+		  -- Load dest register with value in RAM at [src + offset]
+		  -- dest = [src + offset]
+		  temp_addr := src + offset;
+		  ram_addr <= std_logic_vector(temp_addr(11 downto 0));
+		  reg(dest) <= unsigned(ram_out);
+		end LDR16;
+		
+		----[ STR16 ]
+		procedure STR16( src, offset, value : unsigned (31 downto 0)) is
+		variable temp_addr : unsigned(31 downto 0);
+		begin
+		  -- Store value into RAM at [src + offset]
+		  -- [src + offset] = value
+		  temp_addr := src + offset;
+		  ram_addr <= std_logic_vector(temp_addr(11 downto 0));
+		  ram_data <= std_logic_vector(value);
+		  ram_wren <= '1';
+		end STR16;
+		
 	-- Bug note
 	-- If the clock changes for any reason it will repeat the instruction so we have to check both edges of the clock
 	-- in order to make sure it saves and doesn't repeat the instruction twice.
@@ -408,9 +432,9 @@ begin
 					  -- CMP (imm8)
 					  CMP16(reg(to_integer(instruction(10 downto 8))),
 					        resize(instruction(7 downto 0),32));
-					when "01111" =>
+					/*when "01111" =>
 					  -- Temp Subtract
-					  reg(to_integer(instruction(2 downto 0))) <= reg((to_integer(instruction(5 downto 3)))) - instruction(8 downto 6);
+					  reg(to_integer(instruction(2 downto 0))) <= reg((to_integer(instruction(5 downto 3)))) - instruction(8 downto 6);*/
 					when others =>
 						null;
 				end case?;
@@ -478,12 +502,12 @@ begin
 					       reg(to_integer(instruction(2 downto 0))));
 					when "1001" =>
 						-- NEG || RSB
-						NEG16(reg(to_integer(instruction(2 downto 0))),
-					       reg(to_integer(instruction(5 downto 3))));
+						NEG16(to_integer(instruction(2 downto 0)),
+					        to_integer(instruction(5 downto 3)));
 					when "1101" =>
 						-- MUL
-						MUL16(reg(to_integer(instruction(2 downto 0))),
-					       reg(to_integer(instruction(5 downto 3))));
+						MUL16(to_integer(instruction(2 downto 0)),
+					        to_integer(instruction(5 downto 3)));
 					when others =>
 						null;
 				end case?;
@@ -606,7 +630,28 @@ begin
 				bl_var(11) := '1';
 				bl_var(10 downto 0) := instruction(10 downto 0); 
 				reg(14) <= "000000000000000000000" & instruction(10 downto 0);
-					   
+			when "01101-" => 
+			-- LDR Rd = [Rm + #Imm5<<2]
+			  ram_offset := resize(instruction(10 downto 6), 32) sll 2;
+			  LDR16(to_integer(instruction(2 downto 0)),      -- Rd (dest)
+			        reg(to_integer(instruction(5 downto 3))), -- Rm (src)
+			        ram_offset);                              -- Imm5<<2 (offset)
+			when "01100-" => 
+			-- STR [Rn+#Imm5<<2] = Rt
+			  ram_offset := resize(instruction(10 downto 6), 32) sll 2;
+			  STR16(reg(to_integer(instruction(5 downto 3))),  -- Rn (src)
+			        ram_offset,                                -- Imm5<<2 (offset)
+			        reg(to_integer(instruction(2 downto 0)))); -- Rt (value)
+			when "010110" => 
+			-- LDR Rt = [Rn + Rm]
+			  LDR16(to_integer(instruction(2 downto 0)),       -- Rt (dest)
+			        reg(to_integer(instruction(5 downto 3))),  -- Rn (src)
+			        reg(to_integer(instruction(8 downto 6)))); -- Rm (offset)
+			when "010100" => 
+			-- STR [Rm+Rn] = Rt
+			  STR16(reg(to_integer(instruction(2 downto 0))),  -- Rm (src)
+			        reg(to_integer(instruction(5 downto 3))),  -- Rn (offset)
+			        reg(to_integer(instruction(8 downto 6)))); -- Rt (value)
 			when others => -- Start will be all uuuu's report "Bad Instruction" severity ERROR;
 		end case?;	
 	 end if;
