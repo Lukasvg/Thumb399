@@ -253,6 +253,161 @@ begin
     wait for 40 ns;
     assert reg(1) = 12 report "BL operation failed";
 
+    -----------------------------------------------------------------------------------
+    -- Cassandra's Test Code. Instruction Memory 300-399
+    -- Updated Condition Flag Tests
+    -----------------------------------------------------------------------------------
+    wait for 105 ns; -- MOV R0, #128
+    wait for 20 ns; -- MOV R1, #23
+    wait for 20 ns; -- LSL R0, R1
+    assert statusRegisters(1) = '0' report "On LSL: Failed Neg Flag Clear";
+    assert statusRegisters(2) = '0' report "On LSL: Failed Zero Flag Clear";
+    assert statusRegisters(3) = '0' report "On LSL: Failed Carry Flag Clear";
+    wait for 20 ns; -- LSL R0, R0, #1
+    assert statusRegisters(1) = '1' report "On LSL: Failed Neg Flag Set";
+    wait for 20 ns; -- LSL R0, R0, #1
+    assert statusRegisters(3) = '1' report "On LSL: Failed Carry Flag Set";
+    assert statusRegisters(2) = '1' report "On LSL: Failed Zero Flag Set";
+    
+    wait for 20 ns; -- MOV R0, #128
+    wait for 20 ns; -- ASR R0, R0, #2
+    assert statusRegisters(1) = '0' report "On ASR: Failed Neg Flag Clear";
+    assert statusRegisters(2) = '0' report "On ASR: Failed Zero Flag Clear";
+    assert statusRegisters(3) = '0' report "On ASR: Failed Carry Flag Clear";
+    wait for 20 ns; -- ASR R0, R0, #6
+    assert statusRegisters(2) = '1' report "On ASR: Failed Zero Flag Set";
+    wait for 20 ns; -- MOV R0, #128
+    wait for 20 ns; -- MOV R1, #24
+    wait for 20 ns; -- LSL R0, R1
+    wait for 20 ns; -- MOV R1, #32
+    wait for 20 ns; -- ASR R0, R1
+    assert statusRegisters(1) = '1' report "On ASR: Failed Neg Flag Set";
+    assert statusRegisters(2) = '0' report "On ASR: Failed Zero Flag Clear";
+    assert statusRegisters(3) = '1' report "On ASR: Failed Carry Flag Set";
+    
+    wait for 20 ns; -- MOV R0, #16
+    wait for 20 ns; -- LSR R0, R0, #3
+    assert statusRegisters(1) = '0' report "On LSR: Failed Neg Flag Clear";
+    assert statusRegisters(2) = '0' report "On LSR: Failed Zero Flag Clear";
+    assert statusRegisters(3) = '0' report "On LSR: Failed Carry Flag Clear";
+    wait for 20 ns; -- MOV R0, #128
+    wait for 20 ns; -- MOV R1, #24
+    wait for 20 ns; -- LSL R0, R1
+    wait for 20 ns; -- LSR R0, R0, #0
+    assert statusRegisters(1) = '1' report "On LSR: Failed Neg Flag Set";
+    wait for 20 ns; -- MOV R1, #32
+    wait for 20 ns; -- LSR R0, R1
+    assert statusRegisters(2) = '1' report "On LSR: Failed Zero Flag Set";
+    assert statusRegisters(3) = '1' report "On LSR: Failed Carry Flag Set";
+    
+    wait for 20 ns; -- MOV R0, #64
+    wait for 20 ns; -- MOV R1, #4
+    wait for 20 ns; -- ROR R0, R1
+    assert statusRegisters(1) = '0' report "On ROR: Failed Neg Flag Clear";
+    assert statusRegisters(2) = '0' report "On ROR: Failed Zero Flag Clear";
+    assert statusRegisters(3) = '0' report "On ROR: Failed Carry Flag Clear";
+    wait for 20 ns; -- MOV R0, #7
+    wait for 20 ns; -- MOV R1, #2
+    wait for 20 ns; -- ROR R0, R1
+    assert statusRegisters(1) = '1' report "On ROR: Failed Neg Flag Set";
+    assert statusRegisters(3) = '1' report "On ROR: Failed Carry Flag Set";
+    wait for 20 ns; -- MOV R0, #0
+    wait for 20 ns; -- MOV R1, #1   -- zero flag clear
+    wait for 20 ns; -- ROR R0, R0
+    assert statusRegisters(2) = '1' report "On ROR: Failed Zero Flag Set";
+    
+    wait for 20 ns; -- MOV R0, #128
+    wait for 20 ns; -- MOV R1, #24
+    wait for 20 ns; -- LSL R0, R1
+    wait for 20 ns; -- MOV R1, #32
+    wait for 20 ns; -- ASR R0, R1
+    wait for 20 ns; -- MOV R2, R0 -- neg set, zero clear
+    wait for 20 ns; -- ADD R2, #1
+    assert statusRegisters(1) = '0' report "On ADD: Failed Neg Flag Clear";
+    assert statusRegisters(3) = '1' report "On ADD: Failed Carry Flag Set";
+    assert statusRegisters(2) = '1' report "On ADD: Failed Zero Flag Set";
+    wait for 20 ns; -- MOV R1, #0
+    wait for 20 ns; -- MOV R3, R0
+    wait for 20 ns; -- LSR R3, R3, #1 -- neg clear, zero clear, carry set
+    wait for 20 ns; -- ADC R3, R1
+    assert statusRegisters(1) = '1' report "On ADC: Failed Neg Flag Set 1";
+    assert statusRegisters(3) = '0' report "On ADC: Failed Carry Flag Clear";
+    assert statusRegisters(2) = '0' report "On ADC: Failed Zero Flag Clear 1";
+    wait for 20 ns; -- MOV R1, #1
+    wait for 20 ns; -- MOV R3, R0     -- neg set, zero clear
+    wait for 20 ns; -- ADC R3, R1
+    assert statusRegisters(1) = '0' report "On ADC: Failed Neg Flag Clear";
+    assert statusRegisters(3) = '1' report "On ADC: Failed Carry Flag Set 1";
+    assert statusRegisters(2) = '1' report "On ADC: Failed Zero Flag Set";
+    wait for 20 ns; -- MOV R3, R0
+    wait for 20 ns; -- MOV R1, #0     -- neg clear, zero set
+    wait for 20 ns; -- ADD R1, #0     -- carry clear
+    wait for 20 ns; -- ADC R3, R3
+    assert statusRegisters(1) = '1' report "On ADC: Failed Neg Flag Set 2";
+    assert statusRegisters(3) = '1' report "On ADC: Failed Carry Flag Set 2";
+    assert statusRegisters(2) = '0' report "On ADC: Failed Zero Flag Clear 2";
+    
+    wait for 20 ns; -- MOV R0, #0
+    wait for 20 ns; -- MOV R1, #24
+    wait for 20 ns; -- MOV R2, #128
+    wait for 20 ns; -- LSL R2, R1    -- neg set
+    wait for 20 ns; -- AND R0, R1
+    assert statusRegisters(1) = '0' report "On AND: Failed Neg Flag Clear";
+    wait for 20 ns; -- MOV R0, #0    
+    wait for 20 ns; -- MOV R6, #0    -- zero set
+    wait for 20 ns; -- AND R1, R1
+    assert statusRegisters(2) = '0' report "On AND: Failed Zero Flag Clear";
+    wait for 20 ns; -- AND R6, R6
+    assert statusRegisters(2) = '1' report "On AND: Failed Zero Flag Set";
+    wait for 20 ns; -- AND R2, R2
+    assert statusRegisters(1) = '1' report "On AND: Failed Neg Flag Set";
+    
+    wait for 20 ns; -- MOV R0, #0
+    wait for 20 ns; -- MOV R1, #24
+    wait for 20 ns; -- MOV R2, #128
+    wait for 20 ns; -- LSL R2, R1    -- neg set, zero clear
+    wait for 20 ns; -- BIC R1, R1
+    assert statusRegisters(1) = '0' report "On BIC: Failed Neg Flag Clear";
+    assert statusRegisters(2) = '1' report "On BIC: Failed Zero Flag Set";
+    wait for 20 ns; -- BIC R2, R0
+    assert statusRegisters(1) = '1' report "On BIC: Failed Neg Flag Set";
+    assert statusRegisters(2) = '0' report "On BIC: Failed Zero Flag Clear";
+    
+    wait for 20 ns; -- MOV R0, #0
+    wait for 20 ns; -- MOV R1, #24
+    wait for 20 ns; -- MOV R2, #128
+    wait for 20 ns; -- LSL R2, R1    -- neg set, zero clear
+    wait for 20 ns; -- EOR R1, R0
+    assert statusRegisters(1) = '0' report "On EOR: Failed Neg Flag Clear";
+    wait for 20 ns; -- MOV R0, #0    -- zero set, neg clear
+    wait for 20 ns; -- EOR R2, R1
+    assert statusRegisters(1) = '1' report "On EOR: Failed Neg Flag Set";
+    assert statusRegisters(2) = '0' report "On EOR: Failed Zero Flag Clear";
+    wait for 20 ns; -- EOR R2, R2
+    assert statusRegisters(1) = '0' report "On EOR: Failed Neg Flag Clear";
+    assert statusRegisters(2) = '1' report "On EOR: Failed Zero Flag Set";
+    
+    wait for 20 ns; -- MOV R0, #0     -- neg clear, zero set
+    wait for 20 ns; -- MVN R0, R0
+    assert statusRegisters(1) = '1' report "On MVN: Failed Neg Flag Set";
+    assert statusRegisters(2) = '0' report "On MVN: Failed Zero Flag Clear";
+    wait for 20 ns; -- MVN R0, R0
+    assert statusRegisters(1) = '0' report "On MVN: Failed Neg Flag Clear";
+    assert statusRegisters(2) = '1' report "On MVN: Failed Zero Flag Set";
+    
+    wait for 20 ns; -- MOV R0, #0
+    wait for 20 ns; -- MOV R1, #24
+    wait for 20 ns; -- MOV R2, #128
+    wait for 20 ns; -- LSL R2, R1    -- neg set, zero clear
+    wait for 20 ns; -- ORR R0, R0
+    assert statusRegisters(1) = '0' report "On ORR: Failed Neg Flag Clear";
+    assert statusRegisters(2) = '1' report "On ORR: Failed Zero Flag Set";
+    wait for 20 ns; -- ORR R2, R1
+    assert statusRegisters(1) = '1' report "On ORR: Failed Neg Flag Set";
+    assert statusRegisters(2) = '0' report "On ORR: Failed Zero Flag Clear";
+    
+    -----------------------------------------------------------------------------------
+
     -- Johnny's Test Code. Instruction Memory 500-599
     -- CMP Instructions Tests
     -------------------------------------------------------------------------------
@@ -298,6 +453,7 @@ begin
     assert statusRegisters(3) = '1' report "CMP Extend Reg Carry Register Updated";
     assert statusRegisters(0) = '1' report "CMP Overflow Register Updated";
     -----------------------------------------------------------------------------------
+    
     wait for 40 ns;
     reset <= '1';
     wait for 20 ns;

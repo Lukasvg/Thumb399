@@ -97,60 +97,111 @@ begin
 
 		----[ LSL ]
 		procedure LSL16(dest, src : integer range 0 to 15;
-							 n : integer range 0 to 31) is
+							 n : integer range 0 to 32) is
+		  -- store result with carry
+		  variable RwC : unsigned(32 downto 0) := to_unsigned(0, 33);
 		begin
-			reg(dest) <= reg(src) sll n;
+		  if(n /= 0) then
+		    RwC(31 downto 0) := reg(src);
+			RwC := RwC sll n;
+			  reg(dest) <= RwC(31 downto 0);
+			  CarryRegisterUpdate(RwC);
+			else
+			  reg(dest) <= reg(src);
+			end if;
+			NegativeRegisterUpdate(RwC(31 downto 0));
+			ZeroRegisterUpdate(RwC(31 downto 0));
 		end LSL16;
 		
 		----[ LSR ]
 		procedure LSR16(dest, src : integer range 0 to 15; 
-							 n : integer range 0 to 31) is
+							 n : integer range 0 to 32) is
+		  -- store result with carry
+		  variable RwC : unsigned(32 downto 0) := to_unsigned(0, 33);
 		begin
-			reg(dest) <= reg(src) srl n;
+		  if(n /= 0) then
+		    RwC(32) := reg(src)(n - 1); -- carry flag is set to last bit shifted out
+			RwC(31 downto 0) := reg(src) srl n;
+			  reg(dest) <= RwC(31 downto 0);
+			  CarryRegisterUpdate(RwC);
+			else
+			  RwC(31 downto 0) := reg(src);
+			  reg(dest) <= RwC(31 downto 0);
+			end if;
+			NegativeRegisterUpdate(RwC(31 downto 0));
+			ZeroRegisterUpdate(RwC(31 downto 0));
 		end LSR16;
 		
 		----[ ASR ]
 		procedure ASR16(dest, src : integer range 0 to 15;
-							 n : integer range 0 to 31) is
+							 n : integer range 0 to 32) is
+		  -- store result with carry
+		  variable RwC : unsigned(32 downto 0) := to_unsigned(0, 33);
 		begin
-			reg(dest) <= unsigned(to_stdlogicvector(to_bitvector(std_logic_vector(reg(src))) sra n));
+		  if(n /= 0) then
+		    RwC(32) := reg(src)(n - 1); -- carry flag is set to last bit shifted out
+			RwC(31 downto 0) := unsigned(to_stdlogicvector(to_bitvector(std_logic_vector(reg(src))) sra n));
+			reg(dest) <= RwC(31 downto 0);
+			CarryRegisterUpdate(RwC);
+		  else
+			RwC(31 downto 0) := reg(src);
+			reg(dest) <= RwC(31 downto 0);
+	      end if;
+		  NegativeRegisterUpdate(RwC(31 downto 0));
+		  ZeroRegisterUpdate(RwC(31 downto 0));
 		end ASR16;
 		
 		----[ ROR ]
 		procedure ROR16(dest, src : integer range 0 to 15; 
 							 n : integer range 0 to 31) is
+			-- store result with carry
+		  variable RwC : unsigned(32 downto 0) := to_unsigned(0, 33);
 		begin
-			reg(dest) <= reg(src) ror n;
+		  if(n /= 0) then
+		    RwC(32) := reg(src)(n - 1); -- carry flag is set to last bit rotated
+			  RwC(31 downto 0) := reg(src) ror n;
+			  reg(dest) <= RwC(31 downto 0);
+			  CarryRegisterUpdate(RwC);
+			else
+			  RwC(31 downto 0) := reg(src);
+			  reg(dest) <= RwC(31 downto 0);
+			end if;
+			NegativeRegisterUpdate(RwC(31 downto 0));
+			ZeroRegisterUpdate(RwC(31 downto 0));
 		end ROR16;
     
 		----[ MOV ]
 		procedure MOV16(dest : integer range 0 to 15;
-                    src : in unsigned) is 
+                    src : in unsigned) is					
 		begin
 			reg(dest) <= src;
-		end MOV16; 
+			NegativeRegisterUpdate(src);
+			ZeroRegisterUpdate(src);
+		end MOV16;
 		
 		----[ ADC ]
 		procedure ADC16( dest, src : integer range 0 to 7) is
-		variable temp : unsigned(32 downto 0) := to_unsigned(0, 33);
+		  -- store result with carry
+		  variable RwC : unsigned(32 downto 0) := to_unsigned(0, 33);
 		begin
-			temp := resize(reg(src), 33) + resize(reg(dest), 33) + resize(statusRegisters srl 3, 33);
-			reg(dest) <= temp(31 downto 0);
-			NegativeRegisterUpdate(temp);
-			CarryRegisterUpdate(temp);
-			ZeroRegisterUpdate(temp);
+		  RwC := resize(reg(src), 33) + resize(reg(dest), 33) + resize(statusRegisters srl 3, 33);
+			reg(dest) <= RwC(31 downto 0);
+			CarryRegisterUpdate(RwC);
+			NegativeRegisterUpdate(RwC(31 downto 0));
+			ZeroRegisterUpdate(RwC(31 downto 0));
 		end ADC16;
 		
 		----[ ADD ]
 		procedure ADD16( dest, src : integer range 0 to 15;
 							  n : unsigned) is
-		variable temp : unsigned(32 downto 0) := to_unsigned(0, 33);
+		  -- store result with carry
+		  variable RwC : unsigned(32 downto 0) := to_unsigned(0, 33);
 		begin
-			temp := resize(reg(src), 33) + resize(n, 33);
-			reg(dest) <= temp(31 downto 0);
-			NegativeRegisterUpdate(temp);
-			CarryRegisterUpdate(temp);
-			ZeroRegisterUpdate(temp);
+			RwC := resize(reg(src), 33) + resize(n, 33);
+			reg(dest) <= RwC(31 downto 0);
+			CarryRegisterUpdate(RwC);
+			NegativeRegisterUpdate(RwC(31 downto 0));
+			ZeroRegisterUpdate(RwC(31 downto 0));
 		end ADD16;
 		
 		-- [ ADD ] Stack/ADR Pointer does not update flags
@@ -160,93 +211,59 @@ begin
 			reg(dest) <= reg(src) + to_unsigned(n, 32);
 		end ADD16S;
 		
-		----[ SUB ]
-		procedure SUB16( dest, src : integer range 0 to 15;
-							  n : unsigned) is
-		variable temp : unsigned(32 downto 0) := to_unsigned(0, 33);
-		begin
-			temp := resize(reg(src), 33) - resize(n, 33);
-			reg(dest) <= temp(31 downto 0);
-			NegativeRegisterUpdate(temp);
-			CarryRegisterUpdate(temp);
-			ZeroRegisterUpdate(temp);
-		end SUB16;
-		
-		procedure SUB16S( dest, src : integer range 0 to 15;
-							  n : unsigned) is
-		begin
-			reg(dest) <= reg(src) + to_unsigned(n, 32);
-		end SUB16S;
-		
-		----[ SBC ]
-		procedure SBC16( dest, src : integer range 0 to 7) is
-		variable temp : unsigned(32 downto 0) := to_unsigned(0, 33);
-		begin
-			temp := resize(reg(src), 33) - resize(reg(dest), 33) - resize(statusRegisters srl 3, 33);
-			reg(dest) <= temp(31 downto 0);
-			NegativeRegisterUpdate(temp);
-			CarryRegisterUpdate(temp);
-			ZeroRegisterUpdate(temp);
-		end SBC16;
-	
-		----[ NEG ] || RSB
-		procedure NEG16( dest, src : integer range 0 to 7) is
-		variable temp : unsigned(32 downto 0) := to_unsigned(0, 33);
-		begin
-			temp := 0 - resize(reg(src), 33);
-			reg(dest) <= temp(31 downto 0);
-			NegativeRegisterUpdate(temp);
-			CarryRegisterUpdate(temp);
-			ZeroRegisterUpdate(temp);
-		end NEG16;
-		
-		----[ MUL ]
-		procedure MUL16( dest, src : integer range 0 to 15;
-							  n : unsigned) is
-		variable temp : unsigned(32 downto 0) := to_unsigned(0, 33);
-		begin
-			temp := resize(reg(dest), 33) * resize(reg(src), 33);
-			reg(dest) <= temp(31 downto 0);
-			NegativeRegisterUpdate(temp);
-			CarryRegisterUpdate(temp);
-			ZeroRegisterUpdate(temp);
-		end MUL16;
-		
-		----[ ADR ]
-		procedure ADR16( dest, src : integer range 0 to 15;
-							  n : integer range 0 to 255) is
-		begin
-			reg(dest) <= reg(src) + to_unsigned(n, 32);
-		end ADR16;
-		
 		----[ AND ]
 		procedure AND16( dest, src : integer range 0 to 15) is
+		  -- store immediate result to update flags
+		  variable immR : unsigned(31 downto 0) := to_unsigned(0, 32);
 		begin
-			reg(dest) <= reg(dest) and reg(src);
+			immR := reg(dest) and reg(src);
+			reg(dest) <= immR;
+			NegativeRegisterUpdate(immR);
+			ZeroRegisterUpdate(immR);
 		end AND16;
 
 		----[ BIC ]
 		procedure BIC16( dest, src : integer range 0 to 15) is
+			-- store immediate result to update flags
+		  variable immR : unsigned(31 downto 0) := to_unsigned(0, 32);
 		begin
-			reg(dest) <= reg(dest) and not reg(src);
+			immR := reg(dest) and not reg(src);
+			reg(dest) <= immR;
+			NegativeRegisterUpdate(immR);
+			ZeroRegisterUpdate(immR);
 		end BIC16;
 
 		----[ EOR ]
 		procedure EOR16( dest, src : integer range 0 to 15) is
+			-- store immediate result to update flags
+		  variable immR : unsigned(31 downto 0) := to_unsigned(0, 32);
 		begin
-			reg(dest) <= reg(dest) xor reg(src);
+			immR := reg(dest) xor reg(src);
+			reg(dest) <= immR;
+			NegativeRegisterUpdate(immR);
+			ZeroRegisterUpdate(immR);
 		end EOR16;
 
 		----[ MVN ]
 		procedure MVN16( dest, src : integer range 0 to 15) is
+			-- store immediate result to update flags
+		  variable immR : unsigned(31 downto 0) := to_unsigned(0, 32);
 		begin
-			reg(dest) <= not reg(src);
+			immR := not reg(src);
+			reg(dest) <= immR;
+			NegativeRegisterUpdate(immR);
+			ZeroRegisterUpdate(immR);
 		end MVN16;
 
 		----[ ORR ]
 		procedure ORR16( dest, src : integer range 0 to 15) is
+			-- store immediate result to update flags
+		  variable immR : unsigned(31 downto 0) := to_unsigned(0, 32);
 		begin
-			reg(dest) <= reg(dest) or reg(src);
+			immR := reg(dest) or reg(src);
+			reg(dest) <= immR;
+			NegativeRegisterUpdate(immR);
+			ZeroRegisterUpdate(immR);
 		end ORR16;
 		
 		----[ B ]
@@ -254,9 +271,9 @@ begin
 		begin
 		  
 			if(inst(10) = '1') then
-				reg(15) <= reg(15) + ( "1111111111111111111111" & inst( 9 downto 0 ) ) + "00000000000000000000000000000100";
+				reg(15) <= reg(15) - inst( 9 downto 0 ) - "00000000000000000000000000000110";
 			else
-				reg(15) <= reg(15) + inst( 9 downto 0 ) - "00000000000000000000000000000100";
+				reg(15) <= reg(15) + inst( 9 downto 0 ) - "00000000000000000000000000000110";
 			end if;
 			stall <= '1';
 		end B16;
@@ -271,7 +288,7 @@ begin
 		----[ BLX ]
 		procedure BLX16( src : integer range 0 to 15 ) is
 		begin
-			reg(14) <= reg(15) - "00000000000000000000000000000010";
+			reg(14) <= reg(15) - "00000000000000000000000000000100";
 			reg(15) <= reg(src);
 			stall <= '1';
 		end BLX16;
@@ -383,21 +400,6 @@ begin
 						ADD16(to_integer(instruction(10 downto 8)),		-- Rdn
 								to_integer(instruction(10 downto 8)),		-- Rdn
 								(instruction(7 downto 0)));		-- imm8
-					when "01101" =>
-						-- SUB (reg)
-						SUB16(to_integer(instruction(2 downto 0)),								-- Rd
-								to_integer(instruction(5 downto 3)),								-- Rn
-								(reg(to_integer(instruction(8 downto 6))))); --regField(Rm)
-					when "111--" =>
-						-- SUB (imm8)
-						SUB16(to_integer(instruction(10 downto 8)),		-- Rdn
-								to_integer(instruction(10 downto 8)),		-- Rdn
-								(instruction(7 downto 0)));		-- imm8
-					when "01111" =>
-						-- SUB (imm3)
-						SUB16(to_integer(instruction(2 downto 0)),		-- Rd
-								to_integer(instruction(5 downto 3)),		-- Rn
-								(instruction(8 downto 6)));		-- imm3
 					when "101--" =>
 					  -- CMP (imm8)
 					  CMP16(reg(to_integer(instruction(10 downto 8))),
@@ -421,19 +423,37 @@ begin
 								to_integer(instruction(5 downto 3)));		-- Rm
 					when "0010" =>
 						-- LSL (reg)
-						LSL16(to_integer(instruction(2 downto 0)),								-- Rdn
-								to_integer(instruction(2 downto 0)),								-- Rdn
-								to_integer(reg(to_integer(instruction(5 downto 3)))));	-- regField(Rm)
+						if(reg(to_integer(instruction(5 downto 3))) > 32) then -- shift of 32 or greater is the same op
+						  LSL16(to_integer(instruction(2 downto 0)),								-- Rdn
+								    to_integer(instruction(2 downto 0)),								-- Rdn
+								    32);
+						else
+						  LSL16(to_integer(instruction(2 downto 0)),								-- Rdn
+								    to_integer(instruction(2 downto 0)),								-- Rdn
+								    to_integer(reg(to_integer(instruction(5 downto 3)))));	-- regField(Rm)
+						end if;
 					when "0011" =>
 						-- LSR (reg)
-						LSR16(to_integer(instruction(2 downto 0)),								-- Rdn
-								to_integer(instruction(2 downto 0)),								-- Rdn
-								to_integer(reg(to_integer(instruction(5 downto 3)))));	-- regField(Rm)
+						if(reg(to_integer(instruction(5 downto 3))) > 32) then -- shift of 32 or greater is the same op
+						  LSR16(to_integer(instruction(2 downto 0)),				-- Rdn
+								    to_integer(instruction(2 downto 0)),								-- Rdn
+								    32);
+						else
+						  LSR16(to_integer(instruction(2 downto 0)),								-- Rdn
+								    to_integer(instruction(2 downto 0)),								-- Rdn
+								    to_integer(reg(to_integer(instruction(5 downto 3)))));	-- regField(Rm)
+						end if;
 					when "0100" =>
 						-- ASR (reg)
-						ASR16(to_integer(instruction(2 downto 0)),								-- Rdn
-								to_integer(instruction(2 downto 0)),								-- Rdn
-								to_integer(reg(to_integer(instruction(5 downto 3)))));	-- regField(Rm)
+						if(reg(to_integer(instruction(5 downto 3))) > 32) then -- shift of 32 or greater is the same op
+						  ASR16(to_integer(instruction(2 downto 0)),								-- Rdn
+								    to_integer(instruction(2 downto 0)),								-- Rdn
+								    32);
+						else
+						  ASR16(to_integer(instruction(2 downto 0)),								-- Rdn
+								    to_integer(instruction(2 downto 0)),								-- Rdn
+								    to_integer(reg(to_integer(instruction(5 downto 3)))));	-- regField(Rm)
+					  end if;
 					when "0101" =>
 						-- ADC
 						ADC16(to_integer(instruction(2 downto 0)),								-- Rd
@@ -442,7 +462,7 @@ begin
 						-- ROR
 						ROR16(to_integer(instruction(2 downto 0)),								-- Rdn
 								to_integer(instruction(2 downto 0)),								-- Rdn
-								to_integer(reg(to_integer(instruction(5 downto 3)))));	-- regField(Rm)
+								to_integer(reg(to_integer(instruction(5 downto 3)))(4 downto 0)));	-- regField(Rm)(4 downto 0)
 					when "1100" =>
 						-- ORR
 						ORR16(to_integer(instruction(2 downto 0)),		-- Rd
@@ -465,14 +485,6 @@ begin
 					when "1000" =>
 					  -- TST
 					  TST16(reg(to_integer(instruction(5 downto 3))),
-					       reg(to_integer(instruction(2 downto 0))));
-					when "1001" =>
-						-- NEG || RSB
-						NEG16(reg(to_integer(instruction(5 downto 3))),
-					       reg(to_integer(instruction(2 downto 0))));
-					when "1101" =>
-						-- MUL
-						MUL16(reg(to_integer(instruction(5 downto 3))),
 					       reg(to_integer(instruction(2 downto 0))));
 					when others =>
 						null;
@@ -517,11 +529,6 @@ begin
 						ADD16S(13,												-- SP
 								13,												--	SP
 								to_integer(instruction(6 downto 0)));  -- imm7
-					when "00001--" =>
-						-- SUB(SP-imm7)
-						SUB16S(13,
-								13,
-								to_integer(instruction(6 downto 0) sll 2));
 					when "001011-" =>
 					  -- UXTB
 					  UXTB16( to_integer(instruction(5 downto 3)),
@@ -548,55 +555,16 @@ begin
 						to_integer(instruction(7 downto 0)));			-- imm8
 			when "10100-" =>
 			  -- Generate PC Relative Address ADR(PC+Imm8<<2)
-				ADR16(to_integer(instruction(10 downto 8)),			-- Rd
-						15,														-- PC
+			  ADD16S(to_integer(instruction(10 downto 8)),			-- Rd
+					  15,														-- PC
 						(to_integer(instruction(7 downto 0) sll 2) ));			-- imm8
 			when "11100-" =>
 			-- Unconditional Branch
 			  b16( instruction(10 downto 0));
-			when "1101--" => 
-			   Case instruction(11 downto 8) is
-			     --EQ
-			     when "0000" =>
-			       if(statusRegisters(2) = '1' ) then
-			         b16( "000" & instruction(7 downto 0));
-			       end if;
-			       
-			     --NE
-			     when "0001" =>
-			       if(statusRegisters(2) = '0' ) then
-			         b16( "000" & instruction(7 downto 0));
-			       end if;
-			     
-			     --CS
-			     when "0010" =>
-			       if(statusRegisters(3) = '1' ) then
-			         b16( "000" & instruction(7 downto 0));
-			       end if;
-			     --CC
-			     when "0011" =>
-			       if(statusRegisters(3) = '0' ) then
-			         b16( "000" & instruction(7 downto 0));
-			       end if;
-			     --MI
-			     when "0100" =>
-			       if(statusRegisters(1) = '1' ) then
-			         b16( "000" & instruction(7 downto 0));
-			       end if;
-			       
-			     --PL
-			     when "0101" => 
-			       if(statusRegisters(1) = '0' ) then
-			         b16( "000" & instruction(7 downto 0));
-			       end if;
-			       
-			     when others => --Note valide condition
-			   end case;
 			when "11110-" => 
 				bl_var(11) := '1';
 				bl_var(10 downto 0) := instruction(10 downto 0); 
 				reg(14) <= "000000000000000000000" & instruction(10 downto 0);
-					   
 			when others => -- Start will be all uuuu's report "Bad Instruction" severity ERROR;
 		end case?;	
 	 end if;
