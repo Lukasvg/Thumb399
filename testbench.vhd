@@ -252,6 +252,15 @@ begin
     -- Add R1, #2
     wait for 100 ns;
     assert reg(1) = 12 report "BL operation failed";
+    
+    -- B 
+    wait for 20 ns;
+    
+    -- Cody's Test Code. Instruction Memory 200-299 
+    -- MOV
+    wait for 100 ns;
+    assert reg(0) = 1 report "Mov != 1";
+    
 
     -- Johnny's Test Code. Instruction Memory 500-599
     -- CMP Instructions Tests
