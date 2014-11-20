@@ -243,14 +243,14 @@ begin
     -- BLX R0
     wait for 20 ns;
     -- Add R1, #2
-    wait for 100 ns;
+    wait for 60 ns;
     assert reg(1) = 10 report "BLX operation failed";
     
     -- BL 
     wait for 20 ns;
     wait for 20 ns; -- it's a two step operation
     -- Add R1, #2
-    wait for 40 ns;
+    wait for 100 ns;
     assert reg(1) = 12 report "BL operation failed";
     
     -- B 
@@ -307,6 +307,39 @@ begin
     assert statusRegisters(3) = '1' report "CMP Extend Reg Carry Register Updated";
     assert statusRegisters(0) = '1' report "CMP Overflow Register Updated";
     -----------------------------------------------------------------------------------
+	-- Tyler's Test Code
+	-- sign extention 
+	-------------------------------------------------------------------------------
+	wait for 20 ns; -- branch to 0x068	wait for 100 ns;
+	wait for 20 ns; -- MOV R0 0x010F
+	wait for 20 ns; --UXTB R0 R1  new value should be just 0x0F
+	assert reg(0) = X"0F" report "UXTB operation failed";
+	
+	--UXTH
+	wait for 20 ns; -- MOV R0 0x85
+	wait for 20 ns; --ADD R0 R0 R0 value should be 0X010F
+	wait for 20 ns; --UXTH R0 R1  walue should stay the same
+	assert reg(0) = X"010A" report "UXTH operation failed";
+	
+	--SXTB
+	wait for 40 ns; -- MOV R1 0xF0
+	wait for 20 ns; -- SXTB R0 R1  new value should be 0xFFFFFFF0
+	assert reg(1) = X"FFFFFFF0" report "SXTB operation failed";
+	
+	--SXTH
+	wait for 20 ns; -- MOV R0 0XF0
+	wait for 20 ns; -- LSL R0 8  new value 0xF000
+	wait for 20 ns; -- UXTH R0 R1 new value should be 0xFFFFF000
+	assert reg(1) = X"FFFFF000" report "SXTH operation failed";
+	
+	wait for 20 ns; -- B -16
+	wait for 80 ns;
+	wait for 20 ns; -- ADD R0 0x1
+	assert reg(1) = X"FFFFF000" report "extra branch test failed";
+	wait for 20 ns; -- B 16
+	wait for 80 ns;
+	--------------------------------------------------------------------------
+
     wait for 40 ns;
     reset <= '1';
     wait for 20 ns;

@@ -28,9 +28,15 @@ architecture integer_unit of integer_unit is
 	 -- 2 => Zero
 	 -- 1 => Negative
 	 -- 0 => Overflow
-	signal instruction : unsigned(15 downto 0); 
+	signal instruction : unsigned(15 downto 0);
+	signal ram_addr : std_logic_vector (11 downto 0);
+	signal ram_data : std_logic_vector (31 downto 0);
+	signal ram_wren : std_logic;
+	signal ram_out : std_logic_vector (31 downto 0);
 begin
   instruction <= (instructionTemp and not (stall or reset));
+  
+  RAM : entity work.ramlpm port map(ram_addr, clock, data, wren, q);
     
 	process(instruction, clock)
 		-- variables
@@ -134,9 +140,11 @@ begin
 		procedure ADC16( dest, src : integer range 0 to 7) is
 		variable temp : unsigned(32 downto 0) := to_unsigned(0, 33);
 		begin
-		  temp := resize(reg(src), 33) + resize(reg(dest), 33) + resize(statusRegisters srl 3, 33);
+			temp := resize(reg(src), 33) + resize(reg(dest), 33) + resize(statusRegisters srl 3, 33);
 			reg(dest) <= temp(31 downto 0);
-			statusRegisters(3) <= temp(32);
+			NegativeRegisterUpdate(temp);
+			CarryRegisterUpdate(temp);
+			ZeroRegisterUpdate(temp);
 		end ADC16;
 		
 		----[ ADD ]
@@ -146,7 +154,9 @@ begin
 		begin
 			temp := resize(reg(src), 33) + resize(n, 33);
 			reg(dest) <= temp(31 downto 0);
-			statusRegisters(3) <= temp(32);
+			NegativeRegisterUpdate(temp);
+			CarryRegisterUpdate(temp);
+			ZeroRegisterUpdate(temp);
 		end ADD16;
 		
 		-- [ ADD ] Stack/ADR Pointer does not update flags
@@ -155,6 +165,65 @@ begin
 		begin
 			reg(dest) <= reg(src) + to_unsigned(n, 32);
 		end ADD16S;
+		
+		----[ SUB ]
+		procedure SUB16( dest, src : integer range 0 to 15;
+							  n : unsigned) is
+		variable temp : unsigned(32 downto 0) := to_unsigned(0, 33);
+		begin
+			temp := resize(reg(src), 33) - resize(n, 33);
+			reg(dest) <= temp(31 downto 0);
+			NegativeRegisterUpdate(temp);
+			CarryRegisterUpdate(temp);
+			ZeroRegisterUpdate(temp);
+		end SUB16;
+		
+		procedure SUB16S( dest, src : integer range 0 to 15;
+							  n : unsigned) is
+		begin
+			reg(dest) <= reg(src) + to_unsigned(n, 32);
+		end SUB16S;
+		
+		----[ SBC ]
+		procedure SBC16( dest, src : integer range 0 to 7) is
+		variable temp : unsigned(32 downto 0) := to_unsigned(0, 33);
+		begin
+			temp := resize(reg(src), 33) - resize(reg(dest), 33) - resize(statusRegisters srl 3, 33);
+			reg(dest) <= temp(31 downto 0);
+			NegativeRegisterUpdate(temp);
+			CarryRegisterUpdate(temp);
+			ZeroRegisterUpdate(temp);
+		end SBC16;
+	
+		----[ NEG ] || RSB
+		procedure NEG16( dest, src : integer range 0 to 7) is
+		variable temp : unsigned(32 downto 0) := to_unsigned(0, 33);
+		begin
+			temp := 0 - resize(reg(src), 33);
+			reg(dest) <= temp(31 downto 0);
+			NegativeRegisterUpdate(temp);
+			CarryRegisterUpdate(temp);
+			ZeroRegisterUpdate(temp);
+		end NEG16;
+		
+		----[ MUL ]
+		procedure MUL16( dest, src : integer range 0 to 15;
+							  n : unsigned) is
+		variable temp : unsigned(32 downto 0) := to_unsigned(0, 33);
+		begin
+			temp := resize(reg(dest), 33) * resize(reg(src), 33);
+			reg(dest) <= temp(31 downto 0);
+			NegativeRegisterUpdate(temp);
+			CarryRegisterUpdate(temp);
+			ZeroRegisterUpdate(temp);
+		end MUL16;
+		
+		----[ ADR ]
+		procedure ADR16( dest, src : integer range 0 to 15;
+							  n : integer range 0 to 255) is
+		begin
+			reg(dest) <= reg(src) + to_unsigned(n, 32);
+		end ADR16;
 		
 		----[ AND ]
 		procedure AND16( dest, src : integer range 0 to 15) is
@@ -227,19 +296,19 @@ begin
 		end BL16;
 		
 		----[ UXTB ]
-		procedure UXTB16( dest, src : integer range 0 to 7 ) is 
+		procedure UXTB16( src, dest : integer range 0 to 7 ) is 
 		begin
 		  reg(dest) <= "000000000000000000000000" & reg(src)(7 downto 0);
 		end UXTB16;
 		  
 	  ----[ UXTH ]
-		procedure UXTH16( dest, src : integer range 0 to 7 ) is 
+		procedure UXTH16( src, dest : integer range 0 to 7 ) is 
 		begin
 		  reg(dest) <= "0000000000000000" & reg(src)(15 downto 0);
 		end UXTH16;
 		
 		----[ SXTB ]
-		procedure SXTB16( dest, src : integer range 0 to 7 ) is 
+		procedure SXTB16( src, dest : integer range 0 to 7 ) is 
 		begin
 		  if reg(src)(7) = '1' then
 		    reg(dest) <= "111111111111111111111111" & reg(src)(7 downto 0);
@@ -249,7 +318,7 @@ begin
 		end SXTB16;
 		
 		----[ SXTH ]
-		procedure SXTH16( dest, src : integer range 0 to 7 ) is 
+		procedure SXTH16( src, dest : integer range 0 to 7 ) is 
 		begin
 		  if reg(src)(15) = '1' then
 		    reg(dest) <= "1111111111111111" & reg(src)(15 downto 0);
@@ -320,6 +389,21 @@ begin
 						ADD16(to_integer(instruction(10 downto 8)),		-- Rdn
 								to_integer(instruction(10 downto 8)),		-- Rdn
 								(instruction(7 downto 0)));		-- imm8
+					when "01101" =>
+						-- SUB (reg)
+						SUB16(to_integer(instruction(2 downto 0)),								-- Rd
+								to_integer(instruction(5 downto 3)),								-- Rn
+								(reg(to_integer(instruction(8 downto 6))))); --regField(Rm)
+					when "111--" =>
+						-- SUB (imm8)
+						SUB16(to_integer(instruction(10 downto 8)),		-- Rdn
+								to_integer(instruction(10 downto 8)),		-- Rdn
+								(instruction(7 downto 0)));		-- imm8
+					when "01111" =>
+						-- SUB (imm3)
+						SUB16(to_integer(instruction(2 downto 0)),		-- Rd
+								to_integer(instruction(5 downto 3)),		-- Rn
+								(instruction(8 downto 6)));		-- imm3
 					when "101--" =>
 					  -- CMP (imm8)
 					  CMP16(reg(to_integer(instruction(10 downto 8))),
@@ -360,6 +444,10 @@ begin
 						-- ADC
 						ADC16(to_integer(instruction(2 downto 0)),								-- Rd
 								to_integer(instruction(5 downto 3)));								-- Rm
+					when "0110" =>
+						-- SBC
+						ADC16(to_integer(instruction(2 downto 0)),								-- Rd
+								to_integer(instruction(5 downto 3)));								-- Rm
 					when "0111" =>
 						-- ROR
 						ROR16(to_integer(instruction(2 downto 0)),								-- Rdn
@@ -388,6 +476,14 @@ begin
 					  -- TST
 					  TST16(reg(to_integer(instruction(5 downto 3))),
 					       reg(to_integer(instruction(2 downto 0))));
+					when "1001" =>
+						-- NEG || RSB
+						NEG16(reg(to_integer(instruction(2 downto 0))),
+					       reg(to_integer(instruction(5 downto 3))));
+					when "1101" =>
+						-- MUL
+						MUL16(reg(to_integer(instruction(2 downto 0))),
+					       reg(to_integer(instruction(5 downto 3))));
 					when others =>
 						null;
 				end case?;
@@ -431,6 +527,11 @@ begin
 						ADD16S(13,												-- SP
 								13,												--	SP
 								to_integer(instruction(6 downto 0)));  -- imm7
+					when "00001--" =>
+						-- SUB(SP-imm7)
+						SUB16S(13,
+								13,
+								to_integer(instruction(6 downto 0) sll 2));
 					when "001011-" =>
 					  -- UXTB
 					  UXTB16( to_integer(instruction(5 downto 3)),
@@ -457,8 +558,8 @@ begin
 						to_integer(instruction(7 downto 0)));			-- imm8
 			when "10100-" =>
 			  -- Generate PC Relative Address ADR(PC+Imm8<<2)
-			  ADD16S(to_integer(instruction(10 downto 8)),			-- Rd
-					  15,														-- PC
+				ADR16(to_integer(instruction(10 downto 8)),			-- Rd
+						15,														-- PC
 						(to_integer(instruction(7 downto 0) sll 2) ));			-- imm8
 			when "11100-" =>
 			-- Unconditional Branch
