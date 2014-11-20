@@ -340,10 +340,60 @@ begin
 	wait for 80 ns;
 	--------------------------------------------------------------------------
 	
-	-- Louis' Test Code
+	-- Louis' Test Code (starting at address 100)
 	-- LDR/STR
 	-------------------------------------------------------------------------------
+	/**** IMMEDIATE OFFSET ****/
+  -- MOV a number into register to LDR into
+  wait for 20 ns; -- MOV R0, #42 : 00100|000|00101010
+  assert reg(0) = 42 report "MOV 42 into R0 failed.";
   
+  -- MOV a number into a register for src of LDR
+  wait for 20 ns; -- MOV R1, #10 : 00100|001|00001010
+  assert reg(1) = 10 report "MOV 10 into R1 failed.";
+  
+  -- LDR into that register and result should be 0
+  wait for 20ns; -- LDR R0, R1, #14 : 01101|01110|001|000
+  -- 14 << 2 is 56, R1 has value 10. address is 66.
+  assert reg(0) = 0 report "LDR address 66 into R0 failed, R0 should be 0.";
+  
+  -- MOV a number into a register to STR from
+  wait for 20 ns; -- MOV R0, #42 : 00100|000|00101010
+  assert reg(0) = 42 report "MOV 42 into R0 failed.";
+  
+  -- STR from that register
+  wait for 20 ns; -- STR R0, R1, #16 : 01100|10000|001|000
+  -- 16 << 2 is 64. R1 has value 10. address is 74.
+  -- STR 42 (R0) into address 74 (R1 + 64)
+  
+  -- LDR into another register the value that was just STR'd
+  wait for 20 ns; -- LDR R1, R0, #8 : 01101|01000|000|001
+  -- 8 << 2 is 32. R0 has value 42. address is 42 + 32 = 74.
+  assert reg(1) = 42 report "LDR address 74 into R1 failed, R1 should be 42.";
+  
+  /**** REGISTER OFFSET ****
+  -- MOV a number into register to LDR into
+  wait for 20 ns;
+  assert reg(2) = 42 report "MOV 42 into R2 failed.";
+  
+  -- MOV 72 into register as source for LDR
+  wait for 20 ns;
+  assert reg(3) = 72 report "MOV 72 into R3 failed."
+  
+  -- LDR into that register and result should be 0
+  wait for 20 ns; -- LDR R2, R3, #28 : 01101|11100|011|010
+  assert reg(2) = 0 report "LDR address 100 into R2 failed, R2 should be 0.";
+  
+  -- MOV a number into a register to STR from
+  wait for 20 ns; 
+  assert reg(2) = 2001 report "MOV 2001 into R2 failed.";
+  
+  -- STR from that register
+  wait for 20 ns; -- STR 2001 into address 100.
+  
+  -- LDR into another register the value that was just STR'd
+  wait for 20 ns;
+  assert reg(3) = 2001 report "LDR address 100 into R3 failed, R3 should be 2001.";*/
 	-------------------------------------------------------------------------------
 
     wait for 40 ns;
