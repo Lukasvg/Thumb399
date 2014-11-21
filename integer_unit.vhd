@@ -42,7 +42,6 @@ begin
 		-- variables
 		variable bl_var: unsigned ( 11 downto 0 );
 		variable ram_offset : unsigned (31 downto 0);
-	  --variable ram_wait : std_logic := '0';
 	  -- General Purpose Status Register Update Procedures
 	  -- For Negative - pass in 32 bits
 	  procedure NegativeRegisterUpdate( result : unsigned ) is
@@ -414,6 +413,7 @@ begin
 		  ram_addr <= std_logic_vector(temp_addr(11 downto 0));
 		  ram_wren <= '0';
 		  reg(dest) <= unsigned(ram_out);
+		  reg(15) <= reg(15) - 2;
 		end LDR16;
 		
 		----[ STR16 ]
