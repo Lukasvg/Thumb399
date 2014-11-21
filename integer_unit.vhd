@@ -672,6 +672,44 @@ begin
 				bl_var(11) := '1';
 				bl_var(10 downto 0) := instruction(10 downto 0); 
 				reg(14) <= "000000000000000000000" & instruction(10 downto 0);
+		  when "1101--" => 
+			   Case instruction(11 downto 8) is
+			     --EQ
+			     when "0000" =>
+			       if(statusRegisters(2) = '1' ) then
+			         b16( "000" & instruction(7 downto 0));
+			       end if;
+			       
+			     --NE
+			     when "0001" =>
+			       if(statusRegisters(2) = '0' ) then
+			         b16( "000" & instruction(7 downto 0));
+			       end if;
+			     
+			     --CS
+			     when "0010" =>
+			       if(statusRegisters(3) = '1' ) then
+			         b16( "000" & instruction(7 downto 0));
+			       end if;
+			     --CC
+			     when "0011" =>
+			       if(statusRegisters(3) = '0' ) then
+			         b16( "000" & instruction(7 downto 0));
+			       end if;
+			     --MI
+			     when "0100" =>
+			       if(statusRegisters(1) = '1' ) then
+			         b16( "000" & instruction(7 downto 0));
+			       end if;
+			       
+			     --PL
+			     when "0101" => 
+			       if(statusRegisters(1) = '0' ) then
+			         b16( "000" & instruction(7 downto 0));
+			       end if;
+			       
+			     when others => --Note valide condition
+			   end case;
 			when "01101-" => 
 			-- LDR Rd = [Rm + #Imm5<<2]
 			  ram_offset := resize(instruction(10 downto 6), 32) sll 2;
