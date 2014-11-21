@@ -243,7 +243,7 @@ begin
     -- BLX R0
     wait for 20 ns;
     -- Add R1, #2
-    wait for 60 ns;
+    wait for 100 ns;
     assert reg(1) = 10 report "BLX operation failed";
     
     -- BL 
@@ -251,22 +251,99 @@ begin
     wait for 20 ns; -- it's a two step operation
     -- Add R1, #2
     wait for 100 ns;
-    assert reg(1) = 12 report "BL operation failed";
+    --assert reg(1) = 12 report "BL operation failed";
     
+    -- BL to Cassandra's Code
+    wait for 20 ns;
     -- B 
     wait for 20 ns;
+    -- Add R1, #2
+    wait for 100 ns;
     
     -- Cody's Test Code. Instruction Memory 200-299 
     -- MOV
-    wait for 100 ns;
-    assert reg(0) = 1 report "Mov != 1";
+    --wait for 100 ns;
+    --assert reg(0) = 1 report "Mov != 1";
+  	-- BLX R0
+  wait for 20 ns;
+  -- Add R1, #2
+  wait for 100 ns;
+  
     
-
+	-- Louis' Test Code (starting at address 100)
+	-- LDR/STR
+	-------------------------------------------------------------------------------
+	/**** IMMEDIATE OFFSET ****/
+  -- MOV a number into register to LDR into
+  wait for 20 ns; -- MOV R0, #42 : 00100|000|00101010
+  assert reg(0) = 42 report "MOV 42 into R0 failed.";
+  
+  -- MOV a number into a register for src of LDR
+  wait for 20 ns; -- MOV R1, #10 : 00100|001|00001010
+  assert reg(1) = 10 report "MOV 10 into R1 failed.";
+  
+  -- LDR into that register and result should be 0
+  wait for 20 ns; -- LDR R0, R1, #14 : 01101|01110|001|000
+  -- 14 << 2 is 56, R1 has value 10. address is 66.
+  wait for 20 ns; -- wait for LDR to complete
+  assert reg(0) = 0 report "LDR address 66 into R0 failed, R0 should be 0.";
+  
+  -- MOV a number into a register to STR from
+  wait for 20 ns; -- MOV R0, #42 : 00100|000|00101010
+  assert reg(0) = 42 report "MOV 42 into R0 failed.";
+  
+  -- STR from that register
+  wait for 20 ns; -- STR R0, R1, #16 : 01100|10000|001|000
+  -- 16 << 2 is 64. R1 has value 10. address is 74.
+  -- STR 42 (R0) into address 74 (R1 + 64)
+  
+  -- LDR into another register the value that was just STR'd
+  wait for 20 ns; -- LDR R1, R0, #8 : 01101|01000|000|001
+  -- 8 << 2 is 32. R0 has value 42. address is 42 + 32 = 74.
+  wait for 20 ns; -- wait for LDR to complete
+  assert reg(1) = 42 report "LDR address 74 into R1 failed, R1 should be 42.";
+  
+  /**** REGISTER OFFSET ****/
+  -- MOV a number into register to LDR into
+  wait for 20 ns; -- MOV R2, #1 : 00100|010|00000001
+  assert reg(2) = 1 report "MOV 1 into R2 failed.";
+  
+  -- MOV 72 into register as source for LDR
+  wait for 20 ns; -- MOV R0, #72 : 00100|011|01001000
+  assert reg(3) = 72 report "MOV 72 into R3 failed.";
+  
+  -- MOV 28 into register as offset for LDR
+  wait for 20 ns; -- MOV R0, #28  : 00100|100|00011100
+  assert reg(4) = 28 report "MOV 28 into R4 failed.";
+  
+  -- LDR into that register and result should be 0
+  wait for 20 ns; -- LDR R2, R3, R4 : 0101100|011|100|010
+  wait for 20 ns; -- wait for LDR to complete
+  assert reg(2) = 0 report "LDR address 100 into R2 failed, R2 should be 0.";
+  
+  -- MOV a number into a register to STR from
+  wait for 20 ns; -- MOV R0, #201 : 00100|010|11001001
+  assert reg(2) = 201 report "MOV 201 into R2 failed.";
+  
+  -- STR from that register
+  wait for 20 ns; -- STR 201 into address 100.
+  -- STR R2, R3, R4 : 0101000|011|100|010
+  
+  -- LDR into another register the value that was just STR'd
+  wait for 20 ns; -- LDR R5, R3, R4 : 0101100|011|100|011
+  wait for 20 ns; -- wait for LDR to complete
+  assert reg(5) = 201 report "LDR address 100 into R3 failed, R3 should be 2001.";
+	------------------------------------------------------------------------------- 
+	
+	wait for 20 ns; -- MOV r0 , 150
+	wait for 20 ns; -- LSL r0, r0, 2
+	wait for 100 ns; -- BLX R0 Jump to Cassandra
+	
     -----------------------------------------------------------------------------------
     -- Cassandra's Test Code. Instruction Memory 300-399
     -- Updated Condition Flag Tests
     -----------------------------------------------------------------------------------
-    wait for 105 ns; -- MOV R0, #128
+    wait for 100 ns; -- MOV R0, #128
     wait for 20 ns; -- MOV R1, #23
     wait for 20 ns; -- LSL R0, R1
     assert statusRegisters(1) = '0' report "On LSL: Failed Neg Flag Clear";
@@ -495,71 +572,6 @@ begin
 	wait for 20 ns; -- B 16
 	wait for 80 ns;
 	--------------------------------------------------------------------------
-	
-	-- Louis' Test Code (starting at address 100)
-	-- LDR/STR
-	-------------------------------------------------------------------------------
-	/**** IMMEDIATE OFFSET ****/
-  -- MOV a number into register to LDR into
-  wait for 20 ns; -- MOV R0, #42 : 00100|000|00101010
-  assert reg(0) = 42 report "MOV 42 into R0 failed.";
-  
-  -- MOV a number into a register for src of LDR
-  wait for 20 ns; -- MOV R1, #10 : 00100|001|00001010
-  assert reg(1) = 10 report "MOV 10 into R1 failed.";
-  
-  -- LDR into that register and result should be 0
-  wait for 20 ns; -- LDR R0, R1, #14 : 01101|01110|001|000
-  -- 14 << 2 is 56, R1 has value 10. address is 66.
-  wait for 20 ns; -- wait for LDR to complete
-  assert reg(0) = 0 report "LDR address 66 into R0 failed, R0 should be 0.";
-  
-  -- MOV a number into a register to STR from
-  wait for 20 ns; -- MOV R0, #42 : 00100|000|00101010
-  assert reg(0) = 42 report "MOV 42 into R0 failed.";
-  
-  -- STR from that register
-  wait for 20 ns; -- STR R0, R1, #16 : 01100|10000|001|000
-  -- 16 << 2 is 64. R1 has value 10. address is 74.
-  -- STR 42 (R0) into address 74 (R1 + 64)
-  
-  -- LDR into another register the value that was just STR'd
-  wait for 20 ns; -- LDR R1, R0, #8 : 01101|01000|000|001
-  -- 8 << 2 is 32. R0 has value 42. address is 42 + 32 = 74.
-  wait for 20 ns; -- wait for LDR to complete
-  assert reg(1) = 42 report "LDR address 74 into R1 failed, R1 should be 42.";
-  
-  /**** REGISTER OFFSET ****/
-  -- MOV a number into register to LDR into
-  wait for 20 ns; -- MOV R2, #1 : 00100|010|00000001
-  assert reg(2) = 1 report "MOV 1 into R2 failed.";
-  
-  -- MOV 72 into register as source for LDR
-  wait for 20 ns; -- MOV R0, #72 : 00100|011|01001000
-  assert reg(3) = 72 report "MOV 72 into R3 failed.";
-  
-  -- MOV 28 into register as offset for LDR
-  wait for 20 ns; -- MOV R0, #28  : 00100|100|00011100
-  assert reg(4) = 28 report "MOV 28 into R4 failed.";
-  
-  -- LDR into that register and result should be 0
-  wait for 20 ns; -- LDR R2, R3, R4 : 0101100|011|100|010
-  wait for 20 ns; -- wait for LDR to complete
-  assert reg(2) = 0 report "LDR address 100 into R2 failed, R2 should be 0.";
-  
-  -- MOV a number into a register to STR from
-  wait for 20 ns; -- MOV R0, #201 : 00100|010|11001001
-  assert reg(2) = 201 report "MOV 201 into R2 failed.";
-  
-  -- STR from that register
-  wait for 20 ns; -- STR 201 into address 100.
-  -- STR R2, R3, R4 : 0101000|011|100|010
-  
-  -- LDR into another register the value that was just STR'd
-  wait for 20 ns; -- LDR R5, R3, R4 : 0101100|011|100|011
-  wait for 20 ns; -- wait for LDR to complete
-  assert reg(5) = 201 report "LDR address 100 into R3 failed, R3 should be 2001.";
-	-------------------------------------------------------------------------------
 
     wait for 40 ns;
     reset <= '1';
