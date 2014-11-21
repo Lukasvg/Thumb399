@@ -253,7 +253,7 @@ begin
     wait for 100 ns;
     --assert reg(1) = 12 report "BL operation failed";
     
-    -- BL to Cassandra's Code
+    -- BL to Louis's Code
     wait for 20 ns;
     -- B 
     wait for 20 ns;
@@ -265,10 +265,6 @@ begin
     --wait for 100 ns;
     --assert reg(0) = 1 report "Mov != 1";
   	-- BLX R0
-  wait for 20 ns;
-  -- Add R1, #2
-  wait for 100 ns;
-  
     
 	-- Louis' Test Code (starting at address 100)
 	-- LDR/STR
@@ -285,7 +281,6 @@ begin
   -- LDR into that register and result should be 0
   wait for 20 ns; -- LDR R0, R1, #14 : 01101|01110|001|000
   -- 14 << 2 is 56, R1 has value 10. address is 66.
-  wait for 20 ns; -- wait for LDR to complete
   assert reg(0) = 0 report "LDR address 66 into R0 failed, R0 should be 0.";
   
   -- MOV a number into a register to STR from
@@ -300,7 +295,6 @@ begin
   -- LDR into another register the value that was just STR'd
   wait for 20 ns; -- LDR R1, R0, #8 : 01101|01000|000|001
   -- 8 << 2 is 32. R0 has value 42. address is 42 + 32 = 74.
-  wait for 20 ns; -- wait for LDR to complete
   assert reg(1) = 42 report "LDR address 74 into R1 failed, R1 should be 42.";
   
   /**** REGISTER OFFSET ****/
@@ -492,6 +486,11 @@ begin
     assert statusRegisters(1) = '1' report "On ORR: Failed Neg Flag Set";
     assert statusRegisters(2) = '0' report "On ORR: Failed Zero Flag Clear";
     
+    
+    	wait for 20 ns; -- MOV r0 , 250
+	   wait for 20 ns; -- LSL r0, r0, 2
+	   wait for 100 ns; -- BLX R0 Jump to Johnny
+    
     -----------------------------------------------------------------------------------
 
     -- Johnny's Test Code. Instruction Memory 500-599
@@ -539,6 +538,12 @@ begin
     assert statusRegisters(3) = '1' report "CMP Extend Reg Carry Register Updated";
     assert statusRegisters(0) = '1' report "CMP Overflow Register Updated";
     -----------------------------------------------------------------------------------
+    
+    
+   	 wait for 20 ns; -- MOV r0 , 150
+	   wait for 20 ns; -- LSL r0, r0, 3
+	   wait for 100 ns; -- BLX R0 Jump to Tyler
+    
     
 	-- Tyler's Test Code
 	-- sign extention 
