@@ -293,7 +293,7 @@ begin
   -- STR 42 (R0) into address 74 (R1 + 64)
   
   -- LDR into another register the value that was just STR'd
-  wait for 20 ns; -- LDR R1, R0, #8 : 01101|01000|000|001
+  wait for 60 ns; -- LDR R1, R0, #8 : 01101|01000|000|001
   -- 8 << 2 is 32. R0 has value 42. address is 42 + 32 = 74.
   assert reg(1) = 42 report "LDR address 74 into R1 failed, R1 should be 42.";
   
@@ -307,7 +307,7 @@ begin
   assert reg(3) = 72 report "MOV 72 into R3 failed.";
   
   -- MOV 28 into register as offset for LDR
-  wait for 20 ns; -- MOV R0, #28  : 00100|100|00011100
+  wait for 60 ns; -- MOV R0, #28  : 00100|100|00011100
   assert reg(4) = 28 report "MOV 28 into R4 failed.";
   
   -- LDR into that register and result should be 0
