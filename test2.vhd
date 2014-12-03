@@ -1,4 +1,4 @@
--- Authors : Johnny Sim, Cassandra Chow, Hyunil Lee
+-- Author: Lukas van Ginneken
 -- Instruction Set: ADD, Logical Shift, and Logical Operators
 -- Note: For All Tests put 1040 ns on the clock
 
