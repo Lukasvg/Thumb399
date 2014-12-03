@@ -17,7 +17,8 @@ entity integer_unit is
 			  instructionTemp: in unsigned(15 downto 0);
 			  address : out std_logic_vector(31 downto 0) := "00000000000000000000000000000000";
 			  stall : out std_logic := '0';
-			  reset : in std_logic);
+			  reset : in std_logic;
+			  flush : out std_logic := '0');
 end integer_unit;
 
 architecture integer_unit of integer_unit is
@@ -29,19 +30,34 @@ architecture integer_unit of integer_unit is
 	 -- 1 => Negative
 	 -- 0 => Overflow
 	signal instruction : unsigned(15 downto 0);
+	signal stallHappened: std_logic := '0';
 	signal ram_addr : std_logic_vector (11 downto 0) := std_logic_vector(to_unsigned(0, 12));
 	signal ram_data : std_logic_vector (31 downto 0) := std_logic_vector(to_unsigned(0, 32));
 	signal ram_wren : std_logic := '0';
 	signal ram_out : std_logic_vector (31 downto 0) := std_logic_vector(to_unsigned(0, 32));
 begin
-  instruction <= (instructionTemp and not (stall or reset));
-  
+  process (instructionTemp,stall,reset) 
+    variable tempCpy: unsigned(15 downto 0);
+    begin
+    tempCpy := instruction;
+    if(flush = '1') then
+      instruction <= "0000000000000000"; -- All zeroes
+    elsif(falling_edge(stall) and flush = '0') then
+      instruction <= instructionTemp;
+    elsif(stall = '1' and flush = '0') then
+      instruction <= tempCpy;
+    else
+      instruction <= instructionTemp;
+    end if;
+  end process;
   RAM : entity work.ramlpm port map(ram_addr, clock, ram_data, ram_wren, ram_out);
     
 	process(instruction, clock)
 		-- variables
 		variable bl_var: unsigned ( 11 downto 0 );
 		variable ram_offset : unsigned (31 downto 0);
+		variable conCat : unsigned(10 downto 0);
+		
 	  -- General Purpose Status Register Update Procedures
 	  -- For Negative - pass in 32 bits
 	  procedure NegativeRegisterUpdate( result : unsigned ) is
@@ -331,15 +347,15 @@ begin
 		end ORR16;
 		
 		----[ B ]
-		procedure B16( inst : unsigned( 10 downto 0 )) is
+		procedure B16( inst : unsigned) is
 		begin
-		  
-			if(inst(10) = '1') then
-				reg(15) <= reg(15) - inst( 9 downto 0 ) - "00000000000000000000000000000110";
+      if(inst(10) = '1') then
+				reg(15) <= reg(15) + ("11111111111111111111" & inst & "0");
 			else
-				reg(15) <= reg(15) + inst( 9 downto 0 ) - "00000000000000000000000000000110";
+				reg(15) <= reg(15) + (inst & "0");
 			end if;
 			stall <= '1';
+			flush <= '1';
 		end B16;
 		
 		----[ BX ]
@@ -347,6 +363,7 @@ begin
 		begin
 			reg(15) <= reg(src);
 			stall <= '1';
+			flush <= '1';
 		end BX16;
 		
 		----[ BLX ]
@@ -355,6 +372,7 @@ begin
 			reg(14) <= reg(15) - "00000000000000000000000000000100";
 			reg(15) <= reg(src);
 			stall <= '1';
+			flush <= '1';
 		end BLX16;
 		
 		--[ BL ]
@@ -368,6 +386,7 @@ begin
 					-- imm10 & imm11 & 0 
 			bl_var(11) := '0';  -- resets the bl hold 
 			stall <= '1';
+			flush <= '1';
 		end BL16;
 		
 		----[ UXTB ]
@@ -413,7 +432,10 @@ begin
 		  ram_addr <= std_logic_vector(temp_addr(11 downto 0));
 		  ram_wren <= '0';
 		  reg(dest) <= unsigned(ram_out);
-		  reg(15) <= reg(15) - 2;
+		  --reg(15) <= reg(15) - 2;
+		  if(stallHappened = '0') then
+		    stall <= '1'; -- Stall the pipeline
+		  end if;
 		end LDR16;
 		
 		----[ STR16 ]
@@ -440,17 +462,34 @@ begin
       reg(15) <= to_unsigned(0, 32);
     end if;
 			--increment the PC if not in resest
-		if(STALL = '1') THEN
-		  stall <= '0';
-		else 
+		if((not falling_edge(stall))) then
 		   address <= std_logic_vector(reg(15));
 		end if;
-    if(reset = '0' and stall = '0') then
+		if(flush = '1') then
+		  flush <= '0';
+		end if;
+		if(STALL = '1') THEN
+		  stall <= '0';
+    else 
+	     address <= std_logic_vector(reg(15));	
+	     stallHappened <= '0';
+		end if;
+    if(reset = '0' and not falling_edge(stall)) then
       reg(15) <= reg(15) + 2; 
     end if;
     if(ram_wren = '1') then
       ram_wren <= '0';
     end if;
+  end if;
+	
+	if(falling_edge(clock)) then
+	 if(stall = '1' and flush = '1') then
+	   -- Flush clears out pipeline
+	 elsif(stall = '1') then -- just stall
+	   address <=  std_logic_vector(unsigned(address) - 4); -- Shift To previous Cycle before stall
+	   reg(15) <= reg(15) - 4; -- shift to previous cycle before stall
+	   stallHappened <= '1';
+   end if;
 	end if;
 	
   if ( bl_var(11) = '1') then -- bl second part
@@ -497,9 +536,9 @@ begin
 					  -- CMP (imm8)
 					  CMP16(reg(to_integer(instruction(10 downto 8))),
 					        resize(instruction(7 downto 0),32));
-					/*when "01111" =>
+					when "01111" =>
 					  -- Temp Subtract
-					  reg(to_integer(instruction(2 downto 0))) <= reg((to_integer(instruction(5 downto 3)))) - instruction(8 downto 6);*/
+					  reg(to_integer(instruction(2 downto 0))) <= reg((to_integer(instruction(5 downto 3)))) - instruction(8 downto 6);
 					when others =>
 						null;
 				end case?;
@@ -677,35 +716,41 @@ begin
 			     --EQ
 			     when "0000" =>
 			       if(statusRegisters(2) = '1' ) then
-			         b16( "000" & instruction(7 downto 0));
+			         conCat := ("111" & instruction(7 downto 0)) when instruction(7) = '1' else ("000" & instruction(7 downto 0));
+			         b16(conCat);
 			       end if;
 			       
 			     --NE
 			     when "0001" =>
 			       if(statusRegisters(2) = '0' ) then
-			         b16( "000" & instruction(7 downto 0));
+			         conCat := ("111" & instruction(7 downto 0)) when instruction(7) = '1' else ("000" & instruction(7 downto 0));
+			         b16(conCat);
 			       end if;
 			     
 			     --CS
 			     when "0010" =>
 			       if(statusRegisters(3) = '1' ) then
-			         b16( "000" & instruction(7 downto 0));
+			         conCat := ("111" & instruction(7 downto 0)) when instruction(7) = '1' else ("000" & instruction(7 downto 0));
+			         b16(conCat);
 			       end if;
 			     --CC
 			     when "0011" =>
 			       if(statusRegisters(3) = '0' ) then
-			         b16( "000" & instruction(7 downto 0));
+			         conCat := ("111" & instruction(7 downto 0)) when instruction(7) = '1' else ("000" & instruction(7 downto 0));
+			         b16(conCat);
 			       end if;
 			     --MI
 			     when "0100" =>
 			       if(statusRegisters(1) = '1' ) then
-			         b16( "000" & instruction(7 downto 0));
+			         conCat := ("111" & instruction(7 downto 0)) when instruction(7) = '1' else ("000" & instruction(7 downto 0));
+			         b16(conCat);
 			       end if;
 			       
 			     --PL
 			     when "0101" => 
 			       if(statusRegisters(1) = '0' ) then
-			         b16( "000" & instruction(7 downto 0));
+			         conCat := ("111" & instruction(7 downto 0)) when instruction(7) = '1' else ("000" & instruction(7 downto 0));
+			         b16(conCat);
 			       end if;
 			       
 			     when others => --Note valide condition
