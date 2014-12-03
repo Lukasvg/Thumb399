@@ -64,7 +64,7 @@ begin
  process
     -- access the register file within the uut (VDHL 2008 only)
     alias reg is << signal .test2.uut.reg: register_file_t>>;
-    alias statusRegisters is << signal .testbench2.uut.statusRegisters: unsigned >>;
+    alias statusRegisters is << signal .test2.uut.statusRegisters: unsigned >>;
   begin
     /*
     imem(0) <= "0010000100000100"; -- MOV R1, #4
