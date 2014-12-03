@@ -74,7 +74,7 @@ begin
     */
     
     imem(0) <= "0010000000000100"; -- MOV R0, #4
-    imem(1) <= "1110000000000100"; -- B +4 -- skip 
+    imem(1) <= "1110000000000000"; -- B +4 -- skip 
     imem(2) <= "0010000000001010"; -- MOV R0, #10 -- this instruction skipped
     imem(3) <= "0010000100001111"; -- MOV R1, #15
     wait for 120 ns; -- Because it starts at zero meaning its gone through phase 1 and 2

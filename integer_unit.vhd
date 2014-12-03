@@ -333,11 +333,10 @@ begin
 		----[ B ]
 		procedure B16( inst : unsigned( 10 downto 0 )) is
 		begin
-		  
-			if(inst(10) = '1') then
-				reg(15) <= reg(15) - inst( 9 downto 0 ) - "00000000000000000000000000000110";
+      if(inst(10) = '1') then
+				reg(15) <= reg(15) + ("11111111111111111111" & inst & "0");
 			else
-				reg(15) <= reg(15) + inst( 9 downto 0 ) - "00000000000000000000000000000110";
+				reg(15) <= reg(15) + (inst & "0");
 			end if;
 			stall <= '1';
 		end B16;
