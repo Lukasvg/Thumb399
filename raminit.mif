@@ -21,8 +21,8 @@ ADDRESS_RADIX=HEX;
 DATA_RADIX=HEX;
 
 CONTENT BEGIN
-  000  :   69676944; -- Digi (igiD)
-  001  :   006E6570; -- pen(null)
-  002  :   00000000; -- SizeLocation
-  [0031..FFF]  :  0000000000000000;
+  000  :  68656c6c; -- "hell"
+  001  :  6f776f72; -- "owor"
+  002  :  6c642100; -- "ld!0"
+  [003..FFF]  :  0000;
 END;
