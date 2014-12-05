@@ -19,7 +19,8 @@ architecture t2 of test2 is
 			  instructionTemp: in unsigned(15 downto 0);
 			  address : out std_logic_vector(31 downto 0);
 			  stall : out std_logic; -- The Reset Line to goto memory
-			  reset : in std_logic -- External Input
+			  reset : in std_logic; -- External Input
+			  flush : out std_logic
         );
   end component;
 
@@ -37,6 +38,7 @@ architecture t2 of test2 is
   signal address : std_logic_vector(31 downto 0);
   signal stall : std_logic := '0'; -- Stall Reset
   signal reset : std_logic := '0'; -- External Reset
+  signal flush : std_logic := '0'; -- Flush Pipeline
   
 begin
   
@@ -46,15 +48,20 @@ begin
     instructionTemp => instruction,
     address => address,
     stall => stall,
-    reset => reset );
+    reset => reset, 
+    flush => flush);
     
   -- memory
-  process (clock)
+  process (clock, stall)
     variable ix: integer;
   begin
     if(rising_edge(clock)) then
-      ix := to_integer(unsigned(address(31 downto 1)));
-      instruction <= imem(ix);
+      if(stall = '1' and flush = '1') then -- FLUSH
+        instruction <= "UUUUUUUUUUUUUUUU"; -- OR NOP
+      else
+        ix := to_integer(unsigned(address(31 downto 1)));
+        instruction <= imem(ix);
+      end if;
     end if;
   end process;
     
@@ -191,13 +198,13 @@ begin
     -- 60 ns
     imem(55) <= "0010100000000000";  -- CMP R0, #0
     imem(56) <= "1101000111110011";  -- BNE #243 ; jump back to LOOP
-    -- 80 ns
-    -- whole loop takes 500 ns
+    -- 60 ns
+    -- whole loop takes 480 ns
     -- ADD_LARGE_NUMBERS END --
     
-    -- 400 ns * 3 = 1500 ns
+    -- 480 ns * 3 = 1440 ns
     -- last iteration doesn't branch so subtract 40 ns
-    -- 1500 - 40 = 1460 ns
+    -- 1440 - 40 = 1400 ns
     -- prepare to test algorithm results
     imem(57) <= "0010010000001010"; -- MOV R4, 0x0A -- copy int* a
     -- a[0] = -1 + -5 == -6 (set carry)
@@ -224,7 +231,7 @@ begin
     assert reg(3) = 2 Report "Failed to initialize b[2]";
     
     -- TEST ADD_LARGE_NUMBERS
-    wait for 1460 ns;
+    wait for 1400 ns;
     wait for 80 ns;
     assert reg(3) = "11111111111111111111111111111010" Report "Failed to add a[0] + b[0]";
     wait for 80 ns;
